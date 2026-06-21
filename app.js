@@ -164,8 +164,8 @@ function restoreChecks() {
     const cached = tasksCache[id];
     if (cached && cached.done) {
       t.classList.add('done');
-      const db = t.querySelector('.done-by');
-      if (db) setLabel(db, cached.done_by);
+      const dbEl = t.querySelector('.done-by');
+      if (dbEl) setLabel(dbEl, cached.done_by);
     } else {
       t.classList.remove('done');
     }
@@ -210,8 +210,8 @@ async function check(el, who) {
 
   // Optimistic UI update
   el.classList.add('done');
-  const db = el.querySelector('.done-by');
-  if (db) setLabel(db, who);
+  const dbEl = el.querySelector('.done-by');
+  if (dbEl) setLabel(dbEl, who);
 
   if (who === 'lena') scores.lena += pts;
   else if (who === 'pascal') scores.pascal += pts;
@@ -369,8 +369,8 @@ function handleTaskChange(payload) {
     const el = document.querySelector(`.task[data-id="${row.task_id}"]`);
     if (el) {
       el.classList.add('done');
-      const db = el.querySelector('.done-by');
-      if (db) setLabel(db, row.done_by);
+      const dbEl = el.querySelector('.done-by');
+      if (dbEl) setLabel(dbEl, row.done_by);
     }
   }
   const av = document.querySelector('.view.active');
