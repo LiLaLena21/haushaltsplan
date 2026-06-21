@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Haushaltsplan – Lena & Pascal</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a;
+    --ink:#e8eaf0; --muted:#7a7f99; --border:#2e3248;
+    --lena:#89c4f4; --lena-soft:rgba(137,196,244,0.13);
+    --pascal:#ff6eb4; --pascal-soft:rgba(255,110,180,0.13);
+    --wer:#a78bfa; --wer-soft:rgba(167,139,250,0.13);
+    --gem:#c4a8f5; --gem-soft:rgba(196,168,245,0.13);
+    --bamboo:#6ee7b7; --bamboo-soft:rgba(110,231,183,0.13);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Mono',monospace;color:var(--ink);font-size:16px;}
+  #app{display:flex;flex-direction:column;height:100vh;padding:.6rem .85rem .4rem;gap:.45rem;}
+
+  #header-row{display:flex;align-items:center;gap:.9rem;flex-shrink:0;}
+  #title h1{font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;}
+  #title h1 .lena{color:var(--lena);}
+  #title h1 .pascal{color:var(--pascal);}
+  #title p{font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:.1rem;}
+
+  #scoreboard{flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.55rem 1.1rem;display:flex;align-items:center;gap:1.1rem;}
+  .s-person{text-align:center;min-width:68px;}
+  .s-label{font-size:.65rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;}
+  .s-val{font-family:'DM Serif Display',serif;font-size:2.2rem;line-height:1.1;}
+  .s-val.lena{color:var(--lena);} .s-val.pascal{color:var(--pascal);}
+  .s-bamboo{font-size:.68rem;color:var(--bamboo);}
+  #panda-center{display:flex;align-items:center;gap:.9rem;flex:1;min-width:0;}
+  #panda-svg-wrap svg{width:82px;height:82px;flex-shrink:0;}
+  #panda-info{flex:1;min-width:0;}
+  #panda-label{font-size:.72rem;color:var(--muted);margin-bottom:.3rem;}
+  .bar-labels{display:flex;justify-content:space-between;font-size:.63rem;color:var(--muted);margin-bottom:.22rem;}
+  .bbar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .bfill{height:100%;background:var(--bamboo);border-radius:4px;transition:width .4s;}
+  #goal-reached{display:none;font-size:.67rem;color:var(--bamboo);margin-top:.3rem;line-height:1.4;}
+  #goal-reached.visible{display:block;}
+
+  .reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.32rem .75rem;cursor:pointer;border-radius:4px;white-space:nowrap;transition:all .15s;flex-shrink:0;}
+  .reset-btn:hover{border-color:var(--lena);color:var(--lena);}
+  .reset-btn-wrap{display:flex;flex-direction:column;align-items:center;gap:.15rem;flex-shrink:0;}
+  .reset-btn-hint{font-size:.52rem;color:var(--muted);letter-spacing:.04em;text-align:center;}
+
+  #tabs-row{display:flex;gap:.5rem;align-items:stretch;flex-shrink:0;}
+  .tab{background:var(--surface);border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:.8rem;letter-spacing:.07em;text-transform:uppercase;padding:.42rem 1.1rem .38rem;cursor:pointer;border-radius:5px;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:.1rem;}
+  .tab:hover{border-color:var(--muted);}
+  .tab.active{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+  .tab-reset{font-size:.54rem;letter-spacing:.04em;opacity:.6;}
+  .tab.active .tab-reset{opacity:.5;}
+  .legend{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-left:auto;}
+  .legend-item{display:flex;align-items:center;gap:.3rem;font-size:.68rem;color:var(--muted);}
+  .dot{width:9px;height:9px;border-radius:50%;}
+  .dot.lena{background:var(--lena);} .dot.pascal{background:var(--pascal);}
+  .dot.wer{background:var(--wer);} .dot.gem{background:var(--gem);}
+  .sync-indicator{font-size:.6rem;color:var(--muted);display:flex;align-items:center;gap:.3rem;}
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--bamboo);}
+  .sync-dot.offline{background:#e05252;}
+
+  #progress-row{flex-shrink:0;}
+  .pbar{height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+  .pfill{height:100%;background:var(--bamboo);border-radius:2px;transition:width .3s;}
+
+  #content{flex:1;min-height:0;overflow:hidden;}
+  .view{display:none;height:100%;grid-template-columns:1fr 1fr;gap:.55rem;}
+  .view.active{display:grid;}
+  .col{display:flex;flex-direction:column;gap:.42rem;overflow-y:auto;min-height:0;padding-right:.2rem;}
+  .col::-webkit-scrollbar{width:3px;}
+  .col::-webkit-scrollbar-track{background:transparent;}
+  .col::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+  .section{background:var(--surface);border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0;}
+  .section-header{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:.42rem .7rem;background:var(--surface2);border-bottom:1px solid var(--border);}
+  .freq-label{font-size:.56rem;opacity:.65;margin-left:.3rem;}
+
+  .task{display:flex;align-items:center;gap:.6rem;padding:.42rem .7rem;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .1s;}
+  .task:last-child{border-bottom:none;}
+  .task:hover{background:var(--surface2);}
+  .task.done{opacity:.3;}
+  .task.done .task-label{text-decoration:line-through;}
+  .checkbox{width:20px;height:20px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;transition:all .15s;}
+  .task.done .checkbox{background:var(--ink);border-color:var(--ink);}
+  .checkmark{display:none;color:var(--bg);font-size:12px;}
+  .task.done .checkmark{display:block;}
+  .task-label{font-size:1rem;line-height:1.2;flex:1;min-width:0;}
+  .badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:3px;font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;font-weight:500;white-space:nowrap;flex-shrink:0;}
+  .badge.lena{background:var(--lena-soft);color:var(--lena);}
+  .badge.pascal{background:var(--pascal-soft);color:var(--pascal);}
+  .badge.wer{background:var(--wer-soft);color:var(--wer);}
+  .badge.gem{background:var(--gem-soft);color:var(--gem);}
+  .bbadge{display:inline-flex;align-items:center;padding:.1rem .4rem;border-radius:3px;font-size:.68rem;background:var(--bamboo-soft);color:var(--bamboo);white-space:nowrap;flex-shrink:0;}
+  .done-by{display:none;font-size:.72rem;white-space:nowrap;flex-shrink:0;}
+  .task.done .done-by{display:block;}
+  .done-by.lena{color:var(--lena);} .done-by.pascal{color:var(--pascal);}
+  .done-by.wer{color:var(--wer);} .done-by.gem{color:var(--gem);}
+
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:1rem;}
+  .modal-overlay.visible{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.6rem;max-width:310px;width:100%;text-align:center;}
+  .modal h3{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:.4rem;}
+  .modal-task{font-size:.78rem;color:var(--muted);background:var(--bg);border-radius:3px;padding:.45rem .65rem;margin-bottom:1.1rem;line-height:1.4;}
+  .modal-btns{display:flex;gap:.55rem;justify-content:center;flex-wrap:wrap;}
+  .mbtn{font-family:'DM Mono',monospace;font-size:.75rem;letter-spacing:.06em;padding:.55rem 1.1rem;border-radius:4px;border:1.5px solid transparent;cursor:pointer;transition:all .15s;font-weight:500;}
+  .mbtn.lena{background:var(--lena-soft);color:var(--lena);border-color:var(--lena);}
+  .mbtn.lena:hover{background:var(--lena);color:var(--bg);}
+  .mbtn.pascal{background:var(--pascal-soft);color:var(--pascal);border-color:var(--pascal);}
+  .mbtn.pascal:hover{background:var(--pascal);color:var(--bg);}
+  .mbtn.cancel{background:transparent;color:var(--muted);border-color:var(--border);}
+  .mbtn.cancel:hover{border-color:var(--ink);color:var(--ink);}
+
+  #setup-overlay{position:fixed;inset:0;background:var(--bg);z-index:200;display:flex;align-items:center;justify-content:center;padding:2rem;}
+  #setup-box{max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;}
+  #setup-box h2{font-family:'DM Serif Display',serif;margin-bottom:.8rem;}
+  #setup-box p{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+  #setup-box code{background:var(--bg);padding:.1rem .4rem;border-radius:3px;font-size:.8rem;}
+</style>
+</head>
+<body>
+
+<!-- Falls Supabase-Konfiguration fehlt -->
+<div id="setup-overlay" style="display:none;">
+  <div id="setup-box">
+    <h2>⚙️ Einrichtung nötig</h2>
+    <p>Trag deine Supabase-Projekt-URL und den Anon-Key in <code>config.js</code> ein (Datei liegt im selben Ordner wie diese index.html), dann lade die Seite neu.</p>
+    <p>Die Werte findest du im Supabase Dashboard unter <strong>Project Settings → API</strong>.</p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Wer hat's gemacht?</h3>
+    <div class="modal-task" id="modal-task"></div>
+    <div class="modal-btns">
+      <button class="mbtn lena" onclick="confirmWho('lena')">Lena</button>
+      <button class="mbtn pascal" onclick="confirmWho('pascal')">Pascal</button>
+      <button class="mbtn cancel" onclick="cancelModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="header-row">
+    <div id="title">
+      <h1><span class="lena">Lena</span> & <span class="pascal">Pascal</span></h1>
+      <p>Haushaltsplan</p>
+    </div>
+    <div id="scoreboard">
+      <div class="s-person">
+        <div class="s-label">Lena</div>
+        <div class="s-val lena" id="score-lena">0</div>
+        <div class="s-bamboo" id="bamboo-lena">🎋 0</div>
+      </div>
+      <div id="panda-center">
+        <div id="panda-svg-wrap">
+          <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <g id="s-egg"><ellipse cx="50" cy="58" rx="22" ry="28" fill="#1e2030" stroke="#444" stroke-width="1.5"/><ellipse cx="50" cy="55" rx="14" ry="18" fill="#2a2d42" opacity=".5"/></g>
+            <g id="s-baby" display="none"><circle cx="50" cy="62" r="20" fill="#d8d8d8"/><circle cx="38" cy="54" r="8" fill="#1a1a1a"/><circle cx="62" cy="54" r="8" fill="#1a1a1a"/><circle cx="50" cy="62" r="16" fill="#f0f0f0"/><circle cx="44" cy="60" r="3.5" fill="#111"/><circle cx="56" cy="60" r="3.5" fill="#111"/><circle cx="45" cy="59" r="1" fill="white"/><circle cx="57" cy="59" r="1" fill="white"/><path d="M45 66 Q50 70 55 66" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
+            <g id="s-growing" display="none"><circle cx="50" cy="60" r="22" fill="#d8d8d8"/><circle cx="35" cy="50" r="10" fill="#1a1a1a"/><circle cx="65" cy="50" r="10" fill="#1a1a1a"/><circle cx="50" cy="60" r="18" fill="#f0f0f0"/><circle cx="43" cy="57" r="4" fill="#111"/><circle cx="57" cy="57" r="4" fill="#111"/><circle cx="44.5" cy="56" r="1.2" fill="white"/><circle cx="58.5" cy="56" r="1.2" fill="white"/><ellipse cx="50" cy="63" rx="4" ry="2.5" fill="#ffb3c6" opacity=".7"/><path d="M44 68 Q50 73 56 68" stroke="#555" stroke-width="1.5" fill="none" stroke-linecap="round"/><text x="50" y="95" text-anchor="middle" font-size="10">🎋</text></g>
+            <g id="s-big" display="none"><circle cx="50" cy="58" r="25" fill="#d8d8d8"/><circle cx="32" cy="46" r="12" fill="#1a1a1a"/><circle cx="68" cy="46" r="12" fill="#1a1a1a"/><circle cx="50" cy="58" r="21" fill="#f0f0f0"/><circle cx="42" cy="54" r="5" fill="#111"/><circle cx="58" cy="54" r="5" fill="#111"/><circle cx="43.5" cy="52.5" r="1.5" fill="white"/><circle cx="59.5" cy="52.5" r="1.5" fill="white"/><ellipse cx="50" cy="61" rx="5" ry="3" fill="#ffb3c6" opacity=".7"/><path d="M43 67 Q50 73 57 67" stroke="#444" stroke-width="2" fill="none" stroke-linecap="round"/><text x="50" y="97" text-anchor="middle" font-size="11">🎋🎋</text></g>
+            <g id="s-happy" display="none"><circle cx="50" cy="56" r="27" fill="#d8d8d8"/><circle cx="30" cy="43" r="13" fill="#111"/><circle cx="70" cy="43" r="13" fill="#111"/><circle cx="50" cy="56" r="23" fill="#f5f5f5"/><circle cx="41" cy="51" r="5.5" fill="#111"/><circle cx="59" cy="51" r="5.5" fill="#111"/><circle cx="42.5" cy="49.5" r="1.7" fill="white"/><circle cx="60.5" cy="49.5" r="1.7" fill="white"/><ellipse cx="50" cy="59" rx="5.5" ry="3.2" fill="#ffb3c6" opacity=".8"/><path d="M42 65 Q50 72 58 65" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/><text x="14" y="30" font-size="10">✨</text><text x="74" y="28" font-size="10">✨</text><text x="50" y="98" text-anchor="middle" font-size="12">🎋🎋🎋</text></g>
+          </svg>
+        </div>
+        <div id="panda-info">
+          <div id="panda-label">Panda-Ei 🥚</div>
+          <div class="bar-labels"><span>🎋 <span id="total-bamboo">0</span> / 300</span><span id="goal-pct">0%</span></div>
+          <div class="bbar"><div class="bfill" id="goal-fill" style="width:0%"></div></div>
+          <div id="goal-reached"></div>
+        </div>
+      </div>
+      <div class="s-person">
+        <div class="s-label">Pascal</div>
+        <div class="s-val pascal" id="score-pascal">0</div>
+        <div class="s-bamboo" id="bamboo-pascal">🎋 0</div>
+      </div>
+      <div class="reset-btn-wrap">
+        <button class="reset-btn" onclick="resetScores()">Monat reset</button>
+        <span class="reset-btn-hint">Punkte & Panda</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tabs-row">
+    <button class="tab active" onclick="showView('taeglich',this)"><span>Täglich</span><span class="tab-reset" id="tab-reset-taeglich"></span></button>
+    <button class="tab" onclick="showView('woechentlich',this)"><span>Wöchentlich</span><span class="tab-reset" id="tab-reset-woechentlich"></span></button>
+    <button class="tab" onclick="showView('monatlich',this)"><span>Monatlich</span><span class="tab-reset" id="tab-reset-monatlich"></span></button>
+    <div class="legend">
+      <div class="legend-item"><div class="dot lena"></div>Lena</div>
+      <div class="legend-item"><div class="dot pascal"></div>Pascal</div>
+      <div class="legend-item"><div class="dot wer"></div>Wer kann</div>
+      <div class="legend-item"><div class="dot gem"></div>Gemeinsam</div>
+      <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">verbunden</span></div>
+    </div>
+  </div>
+
+  <div id="progress-row"><div class="pbar"><div class="pfill" id="prog-fill" style="width:0%"></div></div></div>
+
+  <div id="content">
+
+    <!-- ══ TÄGLICH ══ -->
+    <div class="view active" id="view-taeglich">
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🐱 Katzen – Tarcin & Sniegs</div>
+          <div class="task" data-id="t-k-m" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Morgens füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="t-k-mi" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Mittags füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="t-k-a" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abends füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="t-k-klo" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Katzenklo kontrollieren & ausmisten</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🍽️ Küche</div>
+          <div class="task" data-id="t-kue-aw" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abwaschen / Spülmaschine befüllen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="t-kue-herd" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Arbeitsfläche & Herd abwischen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="t-kue-sp" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Spülmaschine ausräumen <span class="freq-label">alle 2 Tage</span></div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🏠 Allgemein</div>
+          <div class="task" data-id="t-allg-l" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Sachen wegräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="t-allg-p" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Sachen wegräumen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WÖCHENTLICH ══ -->
+    <div class="view" id="view-woechentlich">
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🐱 Katzen</div>
+          <div class="task" data-id="w-t-bürs" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Tarcin bürsten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-s-bürs" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Sniegs bürsten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-s-ras" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Sniegs rasieren</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-k-klo" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Katzenklo gründlich reinigen & Streu wechseln</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-k-brun" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Trinkbrunnen auffüllen & reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🚿 Bad & WC</div>
+          <div class="task" data-id="w-bad-sp" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Spiegel & Waschbecken (Bad) putzen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-bad-to" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Toilette (Bad) reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-gwc" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Gäste-WC reinigen (Klo + Waschbecken)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-ht" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Handtücher wechseln</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🍽️ Küche</div>
+          <div class="task" data-id="w-kue-kü" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kühlschrank checken (Altes raus)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-kue-air" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Airfryer reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">👕 Wäsche</div>
+          <div class="task" data-id="w-wae-w" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wäsche waschen (Waschtrockner starten)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-wae-a" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Klamotten aufhängen (in den Schrank)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="w-wae-f" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Klamotten falten & einräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🏠 Wohnbereiche</div>
+          <div class="task" data-id="w-rob" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Boden frei räumen für den Roboter</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-bal" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Balkon kehren / Ordnung</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-wohn" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wohn- & Esszimmer aufräumen & abstauben <span class="freq-label">alle 2 Wochen</span></div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MONATLICH ══ -->
+    <div class="view" id="view-monatlich">
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🐱 Katzen</div>
+          <div class="task" data-id="m-k-vor" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Streu- & Futtervorrat prüfen & bestellen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-k-sp" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kratzbäume & Spielzeug prüfen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🍽️ Küche (tief)</div>
+          <div class="task" data-id="m-kue-kü" data-pts="3" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kühlschrank komplett ausräumen & wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 3</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-kue-sch" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Küchenschränke – diesen Monat: ein Teil</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-kue-abl" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Vorratslager: Ablaufdaten checken</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🚿 Bad (tief)</div>
+          <div class="task" data-id="m-bad-du" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Dusche reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-bad-abl" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abflüsse reinigen (Bad, Dusche, Küche)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="m-bad-sch" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Badschrank aufräumen</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="section">
+          <div class="section-header">🧹 Wohnung (tief)</div>
+          <div class="task" data-id="m-w-sau" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Manuell saugen (Ecken, Kanten)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="m-w-wis" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Manuell wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-w-fen" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Fenster – diesen Monat: ein Raum</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-w-sta" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Staubwischen: Regale, Heizkörper, Leisten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-w-abs" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abstellkammer Ordnung</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+          <div class="task" data-id="m-w-flur" data-pts="1" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Flur: Schuhe sortieren & wischen</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 1 (je 0,5)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+          <div class="task" data-id="m-w-bürl" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Büro entstauben & aufräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-w-bürp" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Büro entstauben & aufräumen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🛏️ Schlafzimmer</div>
+          <div class="task" data-id="m-s-bett" data-pts="3" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Bettwäsche wechseln</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 3 (je 1,5)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
