@@ -8,18 +8,7 @@
 4. Füge ihn im SQL Editor ein und klick auf **Run**
 5. Fertig – die drei Tabellen `household_tasks`, `household_scores` und `household_resets` sind angelegt
 
-## 2. Zugangsdaten eintragen
-
-1. In Supabase: **Project Settings → API**
-2. Kopiere die **Project URL** und den **anon public** Key
-3. Öffne `config.js` in diesem Ordner und trage beide Werte ein:
-
-```js
-const SUPABASE_URL = "https://deinprojekt.supabase.co";
-const SUPABASE_ANON_KEY = "eyJ......dein-langer-key......";
-```
-
-## 3. Auf GitHub Pages veröffentlichen
+## 2. Auf GitHub Pages veröffentlichen
 
 ```bash
 # Im haushaltsplan-Ordner:
@@ -37,13 +26,26 @@ Dann in den Repo-Einstellungen auf GitHub:
 Nach ein bis zwei Minuten ist die Seite live unter:
 `https://dein-username.github.io/haushaltsplan/`
 
+## 3. Zugangsdaten direkt in der App eintragen
+
+Beim ersten Öffnen der Seite erscheint ein Einrichtungsformular. Dort trägst du ein:
+
+- **Projekt-URL** – findest du in Supabase unter Project Settings → API → Project URL
+- **Anon Public Key** – ebenfalls dort, der lange Key der mit `eyJ...` beginnt
+
+Die App testet die Verbindung sofort und speichert die Werte im Browser
+(`localStorage`). Das musst du auf jedem Gerät einmalig machen (Handy, iPad, etc.) –
+die Werte werden nicht im Code gespeichert und landen nicht auf GitHub.
+
+Falls du die Zugangsdaten ändern oder neu eingeben willst: im Browser die Website-Daten
+für diese Seite löschen, dann erscheint das Formular wieder.
+
 ## 4. Eigenen Code nachträglich einfügen
 
-Die Struktur ist bewusst in drei Dateien getrennt, damit du leicht reinschreiben kannst:
+Die Struktur ist bewusst in zwei Dateien getrennt, damit du leicht reinschreiben kannst:
 
 - **index.html** – nur Struktur/Inhalt (die Aufgabenliste). Neue Aufgabe hinzufügen = neue `<div class="task">`-Zeile kopieren und anpassen (eindeutige `data-id` nicht vergessen!).
 - **app.js** – die ganze Logik (Supabase-Anbindung, Punkte, Panda, Realtime). Hier kannst du z.B. eigene Funktionen ergänzen oder die Punkteberechnung ändern.
-- **config.js** – nur deine Zugangsdaten.
 
 Jede `.task`-Zeile braucht:
 - `data-id` – eindeutiger Schlüssel (wird als Primary Key in Supabase verwendet)
