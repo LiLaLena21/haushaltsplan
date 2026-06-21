@@ -18,18 +18,62 @@ let resets = { last_daily: null, last_weekly: null, last_monthly: null };
 
 // ── INIT ──
 function checkConfig() {
-  if (!window.SUPABASE_URL || window.SUPABASE_URL === "DEINE_PROJEKT_URL_HIER" ||
-      !window.SUPABASE_ANON_KEY || window.SUPABASE_ANON_KEY === "DEIN_ANON_KEY_HIER") {
+  const url = localStorage.getItem('hp-supabase-url');
+  const key = localStorage.getItem('hp-supabase-key');
+  if (!url || !key) {
     document.getElementById('setup-overlay').style.display = 'flex';
     return false;
   }
+  window.SUPABASE_URL = url;
+  window.SUPABASE_ANON_KEY = key;
   return true;
 }
+
+async function saveSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+  const errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+
+  if (!url || !key) {
+    errEl.textContent = 'Bitte beide Felder ausfüllen.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
+    errEl.textContent = 'Das sieht nicht nach einer gültigen Supabase-URL aus (sollte mit https://... .supabase.co enden).';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Testen ob die Verbindung klappt
+  try {
+    const testClient = window.supabase.createClient(url, key);
+    const { error } = await testClient.from('household_scores').select('id').eq('id', 1).single();
+    if (error) {
+      errEl.textContent = 'Verbindung fehlgeschlagen: ' + error.message + ' (Hast du das SQL-Schema schon ausgeführt?)';
+      errEl.style.display = 'block';
+      return;
+    }
+  } catch (e) {
+    errEl.textContent = 'Verbindung fehlgeschlagen: ' + e.message;
+    errEl.style.display = 'block';
+    return;
+  }
+
+  localStorage.setItem('hp-supabase-url', url);
+  localStorage.setItem('hp-supabase-key', key);
+  document.getElementById('setup-overlay').style.display = 'none';
+  window.SUPABASE_URL = url;
+  window.SUPABASE_ANON_KEY = key;
+  init();
+}
+
 
 async function init() {
   if (!checkConfig()) return;
 
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
   await loadScores();
   await loadResets();
