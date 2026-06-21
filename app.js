@@ -11,7 +11,7 @@ const STAGES = [
   {min:300, max:Infinity, id:'s-happy', label:'Ausgewachsen & glücklich 🐼✨'}
 ];
 
-let supabase;
+let db;
 let tasksCache = {};   // task_id -> { done, done_by, points }
 let scores = { lena: 0, pascal: 0 };
 let resets = { last_daily: null, last_weekly: null, last_monthly: null };
@@ -73,7 +73,7 @@ async function saveSetup() {
 async function init() {
   if (!checkConfig()) return;
 
-  supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+  db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
   await loadScores();
   await loadResets();
@@ -98,14 +98,14 @@ function firstOfMonthStr(){const d=new Date();return d.getFullYear()+'-'+String(
 
 // ── SUPABASE: LOAD ──
 async function loadScores() {
-  const { data, error } = await supabase.from('household_scores').select('*').eq('id', 1).single();
+  const { data, error } = await db.from('household_scores').select('*').eq('id', 1).single();
   if (error) { console.error('loadScores', error); return; }
   scores.lena = Number(data.lena_points) || 0;
   scores.pascal = Number(data.pascal_points) || 0;
 }
 
 async function loadResets() {
-  const { data, error } = await supabase.from('household_resets').select('*').eq('id', 1).single();
+  const { data, error } = await db.from('household_resets').select('*').eq('id', 1).single();
   if (error) { console.error('loadResets', error); return; }
   resets.last_daily = data.last_daily;
   resets.last_weekly = data.last_weekly;
@@ -113,7 +113,7 @@ async function loadResets() {
 }
 
 async function loadTasks() {
-  const { data, error } = await supabase.from('household_tasks').select('*');
+  const { data, error } = await db.from('household_tasks').select('*');
   if (error) { console.error('loadTasks', error); return; }
   tasksCache = {};
   data.forEach(row => {
@@ -141,7 +141,7 @@ async function checkAutoReset() {
 
   if (Object.keys(needsUpdate).length > 0) {
     resets = { ...resets, ...needsUpdate };
-    await supabase.from('household_resets').update(needsUpdate).eq('id', 1);
+    await db.from('household_resets').update(needsUpdate).eq('id', 1);
   }
 }
 
@@ -150,7 +150,7 @@ async function clearViewTasksRemote(viewName) {
   if (!view) return;
   const ids = Array.from(view.querySelectorAll('.task[data-id]')).map(t => t.dataset.id);
   if (ids.length === 0) return;
-  await supabase.from('household_tasks').delete().in('task_id', ids);
+  await db.from('household_tasks').delete().in('task_id', ids);
   ids.forEach(id => delete tasksCache[id]);
   document.querySelectorAll('.task.done').forEach(t => {
     if (ids.includes(t.dataset.id)) t.classList.remove('done');
@@ -224,10 +224,10 @@ async function check(el, who) {
 
   // Write to Supabase
   setSyncStatus(false);
-  await supabase.from('household_tasks').upsert({
+  await db.from('household_tasks').upsert({
     task_id: id, done: true, done_by: who, points: pts, checked_at: new Date().toISOString()
   });
-  await supabase.from('household_scores').update({
+  await db.from('household_scores').update({
     lena_points: scores.lena, pascal_points: scores.pascal
   }).eq('id', 1);
   setSyncStatus(true);
@@ -253,8 +253,8 @@ async function uncheck(el) {
   if (av) updateProgress(av.id);
 
   setSyncStatus(false);
-  await supabase.from('household_tasks').delete().eq('task_id', id);
-  await supabase.from('household_scores').update({
+  await db.from('household_tasks').delete().eq('task_id', id);
+  await db.from('household_scores').update({
     lena_points: scores.lena, pascal_points: scores.pascal
   }).eq('id', 1);
   setSyncStatus(true);
@@ -319,8 +319,8 @@ async function resetScores() {
   if (av) updateProgress(av.id);
 
   setSyncStatus(false);
-  await supabase.from('household_tasks').delete().neq('task_id', '');
-  await supabase.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1);
+  await db.from('household_tasks').delete().neq('task_id', '');
+  await db.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1);
   setSyncStatus(true);
 }
 
@@ -341,7 +341,7 @@ function updateTabResets() {
 
 // ── REALTIME SYNC (damit Lena & Pascal live dieselben Häkchen sehen) ──
 function subscribeRealtime() {
-  supabase.channel('household-changes')
+  db.channel('household-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'household_tasks' }, payload => {
       handleTaskChange(payload);
     })
