@@ -125,9 +125,18 @@
 <!-- Falls Supabase-Konfiguration fehlt -->
 <div id="setup-overlay" style="display:none;">
   <div id="setup-box">
-    <h2>⚙️ Einrichtung nötig</h2>
-    <p>Trag deine Supabase-Projekt-URL und den Anon-Key in <code>config.js</code> ein (Datei liegt im selben Ordner wie diese index.html), dann lade die Seite neu.</p>
-    <p>Die Werte findest du im Supabase Dashboard unter <strong>Project Settings → API</strong>.</p>
+    <h2>⚙️ Einrichtung</h2>
+    <p>Trag hier einmalig deine Supabase-Projekt-URL und den Anon-Key ein. Die Werte findest du im Supabase Dashboard unter <strong>Project Settings → API</strong>.</p>
+    <div style="margin-bottom:.8rem;">
+      <label style="font-size:.7rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:.3rem;">Projekt-URL</label>
+      <input type="text" id="setup-url" placeholder="https://deinprojekt.supabase.co" style="width:100%;padding:.6rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--ink);font-family:'DM Mono',monospace;font-size:.85rem;">
+    </div>
+    <div style="margin-bottom:1.2rem;">
+      <label style="font-size:.7rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;display:block;margin-bottom:.3rem;">Anon Public Key</label>
+      <input type="text" id="setup-key" placeholder="eyJ..." style="width:100%;padding:.6rem .7rem;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--ink);font-family:'DM Mono',monospace;font-size:.85rem;">
+    </div>
+    <button onclick="saveSetup()" style="width:100%;padding:.7rem;background:var(--lena);color:var(--bg);border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:.85rem;font-weight:500;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;">Speichern & starten</button>
+    <p id="setup-error" style="display:none;color:#ff6e6e;margin-top:.8rem;margin-bottom:0;font-size:.75rem;"></p>
   </div>
 </div>
 
@@ -310,7 +319,6 @@
   </div>
 </div>
 
-<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
