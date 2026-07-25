@@ -77,12 +77,13 @@ async function init() {
   }
   db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
-  await Promise.all([loadScores(), loadResets()]);
+  await Promise.all([loadScores(), loadResets(), loadStats(), loadBadges()]);
   await checkAutoReset();
   await loadTasks();
 
   restoreChecks();
   updateScoreboard();
+  renderStreak();
   updateProgress('view-taeglich');
   updateTabResets();
   setInterval(updateTabResets, 60000);
@@ -252,6 +253,10 @@ async function check(el, who) {
   const av = document.querySelector('.view.active');
   if (av) updateProgress(av.id);
 
+  // 🎉 sofortiges Feedback
+  pandaCelebrate();
+  flyBamboo(el.querySelector('.checkbox'), who);
+
   setSyncStatus(false);
   try {
     const { error } = await db.from('household_tasks').upsert({
@@ -261,6 +266,8 @@ async function check(el, who) {
     const e2 = await applyScoreDelta(d.lena, d.pascal);
     if (e2) throw e2;
     setSyncStatus(true);
+    await checkStreak();
+    checkBadges(who);
   } catch (e) {
     console.error('check', e);
     // Speichern fehlgeschlagen → UI zurückrollen, damit nichts "erfunden" wird
@@ -314,6 +321,211 @@ async function uncheck(el) {
   } finally {
     delete el.dataset.busy;
   }
+}
+
+// ── GAMIFICATION: ANIMATIONEN ──
+function pandaCelebrate() {
+  const wrap = document.getElementById('panda-svg-wrap');
+  if (!wrap) return;
+  wrap.classList.remove('happy');
+  void wrap.offsetWidth; // Animation neu starten
+  wrap.classList.add('happy');
+  const sparks = ['✨','🎋','💚','⭐'];
+  for (let i = 0; i < 3; i++) {
+    const s = document.createElement('span');
+    s.className = 'panda-spark';
+    s.textContent = sparks[Math.floor(Math.random()*sparks.length)];
+    s.style.left = (10 + Math.random()*60) + 'px';
+    s.style.top = (Math.random()*30) + 'px';
+    s.style.animationDelay = (i*0.12) + 's';
+    wrap.appendChild(s);
+    setTimeout(() => s.remove(), 1400);
+  }
+  setTimeout(() => wrap.classList.remove('happy'), 1000);
+}
+
+function flyBamboo(fromEl, who) {
+  if (!fromEl) return;
+  const targets = who === 'lena' ? ['bamboo-lena']
+                : who === 'pascal' ? ['bamboo-pascal']
+                : ['bamboo-lena', 'bamboo-pascal'];
+  const r = fromEl.getBoundingClientRect();
+  targets.forEach((tid, i) => {
+    const t = document.getElementById(tid);
+    if (!t) return;
+    const tr = t.getBoundingClientRect();
+    const s = document.createElement('div');
+    s.className = 'fly-bamboo';
+    s.textContent = '🎋';
+    s.style.left = r.left + 'px';
+    s.style.top = r.top + 'px';
+    document.body.appendChild(s);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      s.style.transform = `translate(${tr.left - r.left + i*4}px, ${tr.top - r.top}px) scale(.55) rotate(20deg)`;
+      s.style.opacity = '0.15';
+    }));
+    setTimeout(() => s.remove(), 900);
+  });
+}
+
+let toastTimer = null;
+function showToast(text) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = text;
+  t.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('visible'), 3500);
+}
+
+// ── GAMIFICATION: DUELL ──
+const DUEL_LINES = {
+  lena: [
+    'Lena führt mit {d} 🎋 – Pascal, die Katzen tuscheln schon! 🐱',
+    'Team Blau vorn ({d} 🎋) – Pascal, der Abwasch ruft! 🍽️',
+    'Lena zieht davon – Zeit für eine Pascal-Aufholjagd! 💪',
+    '{d} 🎋 Vorsprung für Lena – Pascal, das Wochenendprogramm rückt in weite Ferne… 😏',
+  ],
+  pascal: [
+    'Pascal führt mit {d} 🎋 – Lena, der Bambus wartet! 🌱',
+    'Team Pink vorn ({d} 🎋) – Lena, Konter! ⚡',
+    'Pascal im Höhenflug – Lena, lässt du dir das gefallen? 😏',
+    '{d} 🎋 Vorsprung für Pascal – Lena, die Wäsche zählt doppelt gut fürs Karma! 👕',
+  ],
+  tie: [
+    'Gleichstand – wer schnappt sich den nächsten Bambus? 👀',
+    'Kopf an Kopf – es bleibt spannend! 🤜🤛',
+    'Exakt gleichauf – der Panda ist unparteiisch. 🐼',
+  ],
+};
+
+function updateDuel() {
+  const bar = document.getElementById('duel-lena');
+  const knot = document.getElementById('duel-knot');
+  const line = document.getElementById('duel-line');
+  if (!bar || !knot || !line) return;
+  const l = scores.lena, p = scores.pascal, total = l + p;
+  const pct = total === 0 ? 50 : Math.max(6, Math.min(94, Math.round((l / total) * 100)));
+  bar.style.width = pct + '%';
+  knot.style.left = pct + '%';
+  const d = Math.abs(l - p);
+  const key = l > p ? 'lena' : p > l ? 'pascal' : 'tie';
+  if (total === 0) { line.textContent = 'Wer sammelt heute den ersten Bambus? 👀'; return; }
+  const arr = DUEL_LINES[key];
+  line.textContent = arr[(d + new Date().getDate()) % arr.length].replace('{d}', d);
+}
+
+// ── GAMIFICATION: STREAKS & ABZEICHEN ──
+let statsAvailable = true, badgesAvailable = true;
+let stats = { streak: 0, best_streak: 0, last_full_day: null };
+let earnedBadges = {};
+
+const BADGES = [
+  { id: 'first-bamboo', icon: '🎋', name: 'Erster Bambus', desc: 'Die allererste Aufgabe abgehakt' },
+  { id: 'early-bird',   icon: '🌅', name: 'Früher Vogel',  desc: 'Eine Aufgabe vor 8 Uhr erledigt' },
+  { id: 'night-owl',    icon: '🦉', name: 'Nachteule',     desc: 'Eine Aufgabe nach 22 Uhr erledigt' },
+  { id: 'cat-butler',   icon: '🐱', name: 'Katzen-Butler', desc: 'Alle Katzen-Tagesaufgaben an einem Tag' },
+  { id: 'clean-sweep',  icon: '🧹', name: 'Tagessieg',     desc: 'Alle täglichen Aufgaben geschafft' },
+  { id: 'streak-3',     icon: '🔥', name: '3er-Serie',     desc: '3 Tage in Folge alles Tägliche geschafft' },
+  { id: 'streak-7',     icon: '⚡', name: 'Wochen-Serie',  desc: '7 Tage in Folge alles Tägliche geschafft' },
+  { id: 'halfway',      icon: '🌓', name: 'Halbzeit',      desc: 'Die Hälfte des Bambus-Ziels gesammelt' },
+  { id: 'goal',         icon: '🏆', name: 'Ziel erreicht', desc: '375 Bambus – der Panda ist überglücklich' },
+];
+
+async function loadStats() {
+  const { data, error } = await db.from('household_stats').select('*').eq('id', 1).single();
+  if (error) { statsAvailable = false; console.warn('household_stats fehlt – für Streaks bitte migration2_gamification.sql ausführen.'); return; }
+  stats = { streak: data.streak || 0, best_streak: data.best_streak || 0, last_full_day: data.last_full_day };
+}
+
+async function loadBadges() {
+  const { data, error } = await db.from('household_badges').select('*');
+  if (error) { badgesAvailable = false; console.warn('household_badges fehlt – für Abzeichen bitte migration2_gamification.sql ausführen.'); return; }
+  earnedBadges = {};
+  data.forEach(r => earnedBadges[r.badge_id] = r);
+}
+
+function displayStreak() {
+  // Serie zählt nur, wenn der letzte volle Tag heute oder gestern war
+  if (!stats.last_full_day) return 0;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  if (stats.last_full_day === todayStr() || stats.last_full_day === localDateStr(y)) return stats.streak;
+  return 0;
+}
+
+function renderStreak() {
+  const chip = document.getElementById('streak-chip');
+  if (!chip) return;
+  if (!statsAvailable) { chip.style.display = 'none'; return; }
+  const s = displayStreak();
+  chip.textContent = '🔥 ' + s;
+  chip.title = 'Tage in Folge alles Tägliche geschafft · Rekord: ' + stats.best_streak;
+}
+
+async function checkStreak() {
+  if (!statsAvailable) return;
+  const view = document.getElementById('view-taeglich');
+  const all = view.querySelectorAll('.task').length;
+  const done = view.querySelectorAll('.task.done').length;
+  renderStreak();
+  if (all === 0 || done < all) return;
+
+  const today = todayStr();
+  if (stats.last_full_day === today) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const newStreak = stats.last_full_day === localDateStr(y) ? stats.streak + 1 : 1;
+  const newBest = Math.max(newStreak, stats.best_streak);
+
+  // Konditional updaten, damit zwei Geräte den Tag nicht doppelt zählen
+  let q = db.from('household_stats').update({ streak: newStreak, best_streak: newBest, last_full_day: today }).eq('id', 1);
+  q = stats.last_full_day === null ? q.is('last_full_day', null) : q.eq('last_full_day', stats.last_full_day);
+  const { error } = await q;
+  if (error) { console.error('checkStreak', error); return; }
+  stats = { streak: newStreak, best_streak: newBest, last_full_day: today };
+  renderStreak();
+  showToast('🔥 ' + newStreak + (newStreak === 1 ? ' Tag' : ' Tage') + ' in Folge alles geschafft!');
+  if (newStreak >= 3) awardBadge('streak-3', null);
+  if (newStreak >= 7) awardBadge('streak-7', null);
+}
+
+async function awardBadge(id, who) {
+  if (!badgesAvailable || earnedBadges[id]) return;
+  earnedBadges[id] = { earned_by: who || null }; // optimistisch, verhindert Doppel-Insert
+  const { error } = await db.from('household_badges').insert({ badge_id: id, earned_by: who || null });
+  if (error && error.code !== '23505') { delete earnedBadges[id]; console.error('awardBadge', error); return; }
+  const b = BADGES.find(x => x.id === id);
+  if (b) showToast('🏅 Abzeichen freigeschaltet: ' + b.icon + ' ' + b.name);
+}
+
+function checkBadges(who) {
+  if (!badgesAvailable) return;
+  const total = scores.lena + scores.pascal;
+  const h = new Date().getHours();
+  if (total > 0) awardBadge('first-bamboo', who);
+  if (h < 8) awardBadge('early-bird', who);
+  if (h >= 22) awardBadge('night-owl', who);
+  const catIds = ['t-k-m', 't-k-mi', 't-k-a', 't-k-klo'];
+  if (catIds.every(i => tasksCache[i] && tasksCache[i].done)) awardBadge('cat-butler', who);
+  const view = document.getElementById('view-taeglich');
+  if (view && view.querySelectorAll('.task').length === view.querySelectorAll('.task.done').length) awardBadge('clean-sweep', who);
+  if (total >= Math.ceil(GOAL / 2)) awardBadge('halfway', null);
+  if (total >= GOAL) awardBadge('goal', null);
+}
+
+function openBadges() {
+  const grid = document.getElementById('badges-grid');
+  grid.innerHTML = '';
+  BADGES.forEach(b => {
+    const earned = !!earnedBadges[b.id];
+    const card = document.createElement('div');
+    card.className = 'badge-card ' + (earned ? 'earned' : 'locked');
+    card.innerHTML = '<div class="bi">' + b.icon + '</div><div class="bn">' + b.name + '</div><div class="bd">' + b.desc + '</div>';
+    grid.appendChild(card);
+  });
+  document.getElementById('badges-modal').classList.add('visible');
+}
+function closeBadges() {
+  document.getElementById('badges-modal').classList.remove('visible');
 }
 
 // ── CONFETTI ──
@@ -383,6 +595,7 @@ function updateScoreboard() {
     goalShown = true;
     showGoalBanner();
   }
+  updateDuel();
 }
 
 function updateProgress(viewId) {
@@ -443,7 +656,7 @@ function updateTabResets() {
 
 // ── REALTIME SYNC ──
 function subscribeRealtime() {
-  db.channel('household-changes')
+  let ch = db.channel('household-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'household_tasks' }, payload => {
       handleTaskChange(payload);
     })
@@ -456,10 +669,30 @@ function subscribeRealtime() {
         if (scores.lena + scores.pascal < GOAL) goalShown = false;
         updateScoreboard();
       }
-    })
-    .subscribe(status => {
-      setSyncStatus(status === 'SUBSCRIBED');
     });
+
+  if (statsAvailable) {
+    ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: 'household_stats' }, payload => {
+      if (payload.new) {
+        stats = { streak: payload.new.streak || 0, best_streak: payload.new.best_streak || 0, last_full_day: payload.new.last_full_day };
+        renderStreak();
+      }
+    });
+  }
+  if (badgesAvailable) {
+    ch = ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'household_badges' }, payload => {
+      const r = payload.new;
+      if (r && !earnedBadges[r.badge_id]) {
+        earnedBadges[r.badge_id] = r;
+        const b = BADGES.find(x => x.id === r.badge_id);
+        if (b) showToast('🏅 Abzeichen freigeschaltet: ' + b.icon + ' ' + b.name);
+      }
+    });
+  }
+
+  ch.subscribe(status => {
+    setSyncStatus(status === 'SUBSCRIBED');
+  });
 }
 
 function handleTaskChange(payload) {
@@ -480,6 +713,7 @@ function handleTaskChange(payload) {
   }
   const av = document.querySelector('.view.active');
   if (av) updateProgress(av.id);
+  checkStreak();
 }
 
 function setSyncStatus(online, msg) {
@@ -497,6 +731,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const banner = document.getElementById('goal-banner');
   if (banner) banner.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeGoalBanner();
+  });
+  const bm = document.getElementById('badges-modal');
+  if (bm) bm.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeBadges();
   });
   init();
 });

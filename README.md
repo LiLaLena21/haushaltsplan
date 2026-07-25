@@ -12,6 +12,11 @@
 > SQL Editor ausführen. Das fügt die Funktion `apply_score_delta` hinzu, damit
 > keine Punkte mehr verloren gehen, wenn ihr beide gleichzeitig etwas abhakt.
 
+> **Streaks & Abzeichen:** Dafür einmalig `migration2_gamification.sql` im
+> SQL Editor ausführen (legt nur die zwei neuen Tabellen `household_stats`
+> und `household_badges` an). Ohne sie läuft die App normal weiter, nur
+> die Serie 🔥 und die Erfolge 🏅 bleiben dann leer.
+
 ## 2. Auf GitHub Pages veröffentlichen
 
 ```bash
