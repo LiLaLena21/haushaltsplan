@@ -2,19 +2,19 @@
 // Haushaltsplan – App-Logik mit Supabase
 // ════════════════════════════════════════
 
-const GOAL = 300;
+const GOAL = 375;
 const STAGES = [
-  {min:0,   max:74,  id:'s-egg',     label:'Panda-Ei 🥚'},
-  {min:75,  max:149, id:'s-baby',    label:'Baby-Panda 🐼'},
-  {min:150, max:224, id:'s-growing', label:'Wachsender Panda 🐼🎋'},
-  {min:225, max:299, id:'s-big',     label:'Großer Panda 🐼🎋🎋'},
-  {min:300, max:Infinity, id:'s-happy', label:'Ausgewachsen & glücklich 🐼✨'}
+  {min:0,   max:75,  id:'s-baby',  label:'Baby Panda 🐼'},
+  {min:76,  max:175, id:'s-teen',  label:'Teenager Panda 🐼🎋'},
+  {min:176, max:300, id:'s-adult', label:'Ausgewachsener Panda 🐼🎋🎋'},
+  {min:301, max:Infinity, id:'s-happy', label:'Glücklicher Panda 🐼✨'},
 ];
 
 let db;
-let tasksCache = {};   // task_id -> { done, done_by, points }
+let tasksCache = {};
 let scores = { lena: 0, pascal: 0 };
 let resets = { last_daily: null, last_weekly: null, last_monthly: null };
+let goalShown = false;
 
 // ── INIT ──
 function checkConfig() {
@@ -41,17 +41,16 @@ async function saveSetup() {
     return;
   }
   if (!url.startsWith('https://') || !url.includes('.supabase.co')) {
-    errEl.textContent = 'Das sieht nicht nach einer gültigen Supabase-URL aus (sollte mit https://... .supabase.co enden).';
+    errEl.textContent = 'Das sieht nicht nach einer gültigen Supabase-URL aus.';
     errEl.style.display = 'block';
     return;
   }
 
-  // Testen ob die Verbindung klappt
   try {
     const testClient = window.supabase.createClient(url, key);
     const { error } = await testClient.from('household_scores').select('id').eq('id', 1).single();
     if (error) {
-      errEl.textContent = 'Verbindung fehlgeschlagen: ' + error.message + ' (Hast du das SQL-Schema schon ausgeführt?)';
+      errEl.textContent = 'Verbindung fehlgeschlagen: ' + error.message;
       errEl.style.display = 'block';
       return;
     }
@@ -68,7 +67,6 @@ async function saveSetup() {
   window.SUPABASE_ANON_KEY = key;
   init();
 }
-
 
 async function init() {
   if (!checkConfig()) return;
@@ -203,12 +201,11 @@ function cancelModal() {
   pendingEl = null;
 }
 
-// ── CHECK / UNCHECK (writes to Supabase) ──
+// ── CHECK / UNCHECK ──
 async function check(el, who) {
   const pts = parseFloat(el.dataset.pts) || 1;
   const id = el.dataset.id;
 
-  // Optimistic UI update
   el.classList.add('done');
   const dbEl = el.querySelector('.done-by');
   if (dbEl) setLabel(dbEl, who);
@@ -222,7 +219,6 @@ async function check(el, who) {
   const av = document.querySelector('.view.active');
   if (av) updateProgress(av.id);
 
-  // Write to Supabase
   setSyncStatus(false);
   await db.from('household_tasks').upsert({
     task_id: id, done: true, done_by: who, points: pts, checked_at: new Date().toISOString()
@@ -260,6 +256,49 @@ async function uncheck(el) {
   setSyncStatus(true);
 }
 
+// ── CONFETTI ──
+function spawnConfetti() {
+  const container = document.getElementById('confetti-container');
+  if (!container) return;
+  container.innerHTML = '';
+  const colors = ['#d4a853','#6ee7b7','#89c4f4','#ff6eb4','#c4a8f5','#ffffff'];
+  for (let i = 0; i < 80; i++) {
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position:absolute;
+      left:${Math.random()*100}vw;
+      top:-20px;
+      width:${Math.random()*10+6}px;
+      height:${Math.random()*10+6}px;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      border-radius:${Math.random()>0.5?'50%':'2px'};
+      animation:confettiFall ${Math.random()*2+2}s ease-in ${Math.random()*2}s forwards;
+    `;
+    container.appendChild(el);
+  }
+  setTimeout(() => container.innerHTML = '', 5000);
+}
+
+function showGoalBanner() {
+  const banner = document.getElementById('goal-banner');
+  const winner = document.getElementById('goal-winner');
+  if (!banner) return;
+  if (scores.lena > scores.pascal) {
+    winner.textContent = '🏆 Lena darf das Wochenendprogramm bestimmen! (' + scores.lena + '🎋 vs ' + scores.pascal + '🎋)';
+  } else if (scores.pascal > scores.lena) {
+    winner.textContent = '🏆 Pascal darf das Wochenendprogramm bestimmen! (' + scores.pascal + '🎋 vs ' + scores.lena + '🎋)';
+  } else {
+    winner.textContent = '🤝 Unentschieden – gemeinsam entscheiden!';
+  }
+  banner.classList.add('visible');
+  spawnConfetti();
+}
+
+function closeGoalBanner() {
+  const banner = document.getElementById('goal-banner');
+  if (banner) banner.classList.remove('visible');
+}
+
 // ── SCOREBOARD / PANDA ──
 function updatePanda(total) {
   STAGES.forEach(s => document.getElementById(s.id).setAttribute('display', 'none'));
@@ -280,15 +319,9 @@ function updateScoreboard() {
   document.getElementById('goal-pct').textContent = pct + '%';
   updatePanda(total);
 
-  const r = document.getElementById('goal-reached');
-  if (total >= GOAL) {
-    let msg = '🎉 300 Bambus! Der Panda ist ausgewachsen & happy!<br>';
-    if (scores.lena > scores.pascal) msg += `Lena darf entscheiden (${scores.lena}🎋 vs ${scores.pascal}🎋) 🎊`;
-    else if (scores.pascal > scores.lena) msg += `Pascal darf entscheiden (${scores.pascal}🎋 vs ${scores.lena}🎋) 🎊`;
-    else msg += 'Unentschieden — gemeinsam entscheiden! 🎊';
-    r.innerHTML = msg; r.classList.add('visible');
-  } else {
-    r.classList.remove('visible');
+  if (total >= GOAL && !goalShown) {
+    goalShown = true;
+    showGoalBanner();
   }
 }
 
@@ -313,6 +346,7 @@ async function resetScores() {
 
   scores = { lena: 0, pascal: 0 };
   tasksCache = {};
+  goalShown = false;
   document.querySelectorAll('.task.done').forEach(t => t.classList.remove('done'));
   updateScoreboard();
   const av = document.querySelector('.view.active');
@@ -339,7 +373,7 @@ function updateTabResets() {
   document.getElementById('tab-reset-monatlich').textContent = 'Reset in ' + Math.round((nf-now)/86400000) + ' Tagen';
 }
 
-// ── REALTIME SYNC (damit Lena & Pascal live dieselben Häkchen sehen) ──
+// ── REALTIME SYNC ──
 function subscribeRealtime() {
   db.channel('household-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'household_tasks' }, payload => {
@@ -385,10 +419,13 @@ function setSyncStatus(online) {
   else { dot.classList.add('offline'); text.textContent = 'speichert…'; }
 }
 
-// ── MODAL CLOSE ON OVERLAY CLICK ──
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) cancelModal();
+  });
+  const banner = document.getElementById('goal-banner');
+  if (banner) banner.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeGoalBanner();
   });
   init();
 });
