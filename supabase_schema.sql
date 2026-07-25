@@ -51,6 +51,23 @@ create policy "Allow all access" on household_tasks for all using (true) with ch
 create policy "Allow all access" on household_scores for all using (true) with check (true);
 create policy "Allow all access" on household_resets for all using (true) with check (true);
 
+-- ── ATOMARE PUNKTE-UPDATES ──
+-- Punkte als Delta addieren statt überschreiben, damit bei gleichzeitigem
+-- Abhaken auf zwei Geräten keine Punkte verloren gehen.
+create or replace function apply_score_delta(lena_delta numeric, pascal_delta numeric)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update household_scores
+  set lena_points   = greatest(0, lena_points + lena_delta),
+      pascal_points = greatest(0, pascal_points + pascal_delta)
+  where id = 1;
+$$;
+
+grant execute on function apply_score_delta(numeric, numeric) to anon;
+
 -- ── REALTIME (optional, aber empfohlen) ──
 -- Damit Änderungen von Pascal sofort bei Lena auftauchen und umgekehrt,
 -- ohne dass man die Seite neu laden muss.

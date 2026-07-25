@@ -8,6 +8,10 @@
 4. Füge ihn im SQL Editor ein und klick auf **Run**
 5. Fertig – die drei Tabellen `household_tasks`, `household_scores` und `household_resets` sind angelegt
 
+> **Bestehende Installation?** Dann musst du nur einmalig `migration.sql` im
+> SQL Editor ausführen. Das fügt die Funktion `apply_score_delta` hinzu, damit
+> keine Punkte mehr verloren gehen, wenn ihr beide gleichzeitig etwas abhakt.
+
 ## 2. Auf GitHub Pages veröffentlichen
 
 ```bash

@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Haushaltsplan – Lena & Pascal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
   :root {
     --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a;
@@ -90,13 +93,15 @@
   .section-header{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding:.42rem .7rem;background:var(--surface2);border-bottom:1px solid var(--border);}
   .freq-label{font-size:.56rem;opacity:.65;margin-left:.3rem;}
 
-  .task{display:flex;align-items:center;gap:.6rem;padding:.42rem .7rem;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .1s;}
+  .task{display:flex;align-items:center;gap:.6rem;padding:.42rem .7rem;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;transition:background .1s,opacity .25s;}
   .task:last-child{border-bottom:none;}
   .task:hover{background:var(--surface2);}
+  .task:active{background:var(--surface2);}
   .task.done{opacity:.3;}
   .task.done .task-label{text-decoration:line-through;}
+  @keyframes checkPop{0%{transform:scale(.6);}55%{transform:scale(1.18);}100%{transform:scale(1);}}
   .checkbox{width:20px;height:20px;border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:transparent;transition:all .15s;}
-  .task.done .checkbox{background:var(--ink);border-color:var(--ink);}
+  .task.done .checkbox{background:var(--ink);border-color:var(--ink);animation:checkPop .22s ease-out;}
   .checkmark{display:none;color:var(--bg);font-size:12px;}
   .task.done .checkmark{display:block;}
   .task-label{font-size:1rem;line-height:1.2;flex:1;min-width:0;}
@@ -129,6 +134,26 @@
   #setup-box{max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;}
   #setup-box h2{font-family:'DM Serif Display',serif;margin-bottom:.8rem;}
   #setup-box p{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+
+  /* ══ MOBILE ══ */
+  @media (max-width:820px){
+    html,body{overflow:auto;height:auto;}
+    #app{height:auto;min-height:100dvh;padding:.7rem .7rem calc(.7rem + env(safe-area-inset-bottom));}
+    #header-row{flex-wrap:wrap;gap:.6rem;}
+    #title{width:100%;text-align:center;}
+    #scoreboard{flex-wrap:wrap;justify-content:center;gap:.6rem .9rem;padding:.7rem .8rem;}
+    #panda-center{order:3;width:100%;flex:none;}
+    .reset-btn-wrap{order:4;width:100%;}
+    #tabs-row{flex-wrap:wrap;}
+    .tab{flex:1;min-width:0;padding:.5rem .4rem .45rem;}
+    .legend{margin-left:0;width:100%;justify-content:center;row-gap:.3rem;}
+    #content{overflow:visible;}
+    .view.active{grid-template-columns:1fr;height:auto;}
+    .col{overflow-y:visible;padding-right:0;}
+    .task{padding:.6rem .7rem;min-height:44px;}   /* größere Touch-Flächen */
+    .checkbox{width:22px;height:22px;}
+    .badge{font-size:.6rem;}
+  }
 </style>
 </head>
 <body>

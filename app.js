@@ -71,10 +71,13 @@ async function saveSetup() {
 async function init() {
   if (!checkConfig()) return;
 
+  if (!window.supabase) {
+    setSyncStatus(false, 'offline – Seite neu laden');
+    return;
+  }
   db = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
-  await loadScores();
-  await loadResets();
+  await Promise.all([loadScores(), loadResets()]);
   await checkAutoReset();
   await loadTasks();
 
@@ -90,8 +93,11 @@ async function init() {
 }
 
 // ── DATE HELPERS ──
-function todayStr(){return new Date().toISOString().slice(0,10);}
-function mondayStr(){const d=new Date(),day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);return m.toISOString().slice(0,10);}
+// Wichtig: lokales Datum verwenden, nicht UTC (toISOString)!
+// Sonst passiert der Tages-Reset erst um 1/2 Uhr nachts statt um Mitternacht.
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function todayStr(){return localDateStr(new Date());}
+function mondayStr(){const d=new Date(),day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);return localDateStr(m);}
 function firstOfMonthStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01';}
 
 // ── SUPABASE: LOAD ──
@@ -120,26 +126,29 @@ async function loadTasks() {
 }
 
 // ── AUTO RESET ──
+// Vor jedem Reset frisch aus der DB laden, damit ein Gerät, das z.B. über
+// Nacht im Standby war, nicht mit veralteten Daten die heutigen Häkchen löscht.
 async function checkAutoReset() {
-  const today = todayStr(), monday = mondayStr(), fom = firstOfMonthStr();
-  let needsUpdate = {};
+  await loadResets();
 
-  if (resets.last_daily !== today) {
-    await clearViewTasksRemote('taeglich');
-    needsUpdate.last_daily = today;
-  }
-  if (resets.last_weekly !== monday) {
-    await clearViewTasksRemote('woechentlich');
-    needsUpdate.last_weekly = monday;
-  }
-  if (resets.last_monthly !== fom) {
-    await clearViewTasksRemote('monatlich');
-    needsUpdate.last_monthly = fom;
-  }
+  const targets = [
+    { field: 'last_daily',   val: todayStr(),        view: 'taeglich' },
+    { field: 'last_weekly',  val: mondayStr(),       view: 'woechentlich' },
+    { field: 'last_monthly', val: firstOfMonthStr(), view: 'monatlich' },
+  ];
 
-  if (Object.keys(needsUpdate).length > 0) {
-    resets = { ...resets, ...needsUpdate };
-    await db.from('household_resets').update(needsUpdate).eq('id', 1);
+  for (const t of targets) {
+    if (resets[t.field] === t.val) continue;
+
+    // Erst Häkchen löschen (idempotent – doppelt löschen schadet nicht),
+    // dann den Reset-Zeitstempel nur setzen, wenn er noch der alte ist.
+    // So überschreiben sich zwei Geräte um Mitternacht nicht gegenseitig.
+    await clearViewTasksRemote(t.view);
+    let q = db.from('household_resets').update({ [t.field]: t.val }).eq('id', 1);
+    q = resets[t.field] === null ? q.is(t.field, null) : q.eq(t.field, resets[t.field]);
+    const { error } = await q;
+    if (error) { console.error('checkAutoReset', error); continue; }
+    resets[t.field] = t.val;
   }
 }
 
@@ -182,6 +191,7 @@ function setLabel(el, who) {
 // ── MODAL ──
 let pendingEl = null;
 function toggle(el) {
+  if (el.dataset.busy === '1') return; // Doppelklick-Schutz, solange gespeichert wird
   if (el.classList.contains('done')) { uncheck(el); return; }
   const who = el.dataset.who;
   if (who === 'together' || who === 'lena' || who === 'pascal') {
@@ -202,58 +212,108 @@ function cancelModal() {
 }
 
 // ── CHECK / UNCHECK ──
+// Punkteänderungen als DELTA an die Datenbank schicken (RPC apply_score_delta),
+// statt den kompletten Punktestand zu überschreiben. Sonst gehen Punkte verloren,
+// wenn Lena und Pascal (fast) gleichzeitig etwas abhaken: Beide lesen z.B. "10",
+// beide schreiben "11" – ein Punkt ist weg. Mit Deltas rechnet die DB atomar.
+function scoreDelta(who, pts) {
+  if (who === 'lena') return { lena: pts, pascal: 0 };
+  if (who === 'pascal') return { lena: 0, pascal: pts };
+  return { lena: Math.ceil(pts / 2), pascal: Math.floor(pts / 2) };
+}
+
+async function applyScoreDelta(dLena, dPascal) {
+  const { error } = await db.rpc('apply_score_delta', { lena_delta: dLena, pascal_delta: dPascal });
+  if (error) {
+    // Fallback für alte DB ohne die RPC-Funktion (siehe migration.sql)
+    console.warn('apply_score_delta RPC fehlt – Fallback auf Überschreiben. Bitte migration.sql ausführen.', error);
+    const { error: e2 } = await db.from('household_scores').update({
+      lena_points: scores.lena, pascal_points: scores.pascal
+    }).eq('id', 1);
+    return e2;
+  }
+  return null;
+}
+
 async function check(el, who) {
   const pts = parseFloat(el.dataset.pts) || 1;
   const id = el.dataset.id;
+  const d = scoreDelta(who, pts);
 
+  el.dataset.busy = '1';
   el.classList.add('done');
   const dbEl = el.querySelector('.done-by');
   if (dbEl) setLabel(dbEl, who);
 
-  if (who === 'lena') scores.lena += pts;
-  else if (who === 'pascal') scores.pascal += pts;
-  else { scores.lena += Math.ceil(pts/2); scores.pascal += Math.floor(pts/2); }
-
+  scores.lena += d.lena;
+  scores.pascal += d.pascal;
   tasksCache[id] = { done: true, done_by: who, points: pts };
   updateScoreboard();
   const av = document.querySelector('.view.active');
   if (av) updateProgress(av.id);
 
   setSyncStatus(false);
-  await db.from('household_tasks').upsert({
-    task_id: id, done: true, done_by: who, points: pts, checked_at: new Date().toISOString()
-  });
-  await db.from('household_scores').update({
-    lena_points: scores.lena, pascal_points: scores.pascal
-  }).eq('id', 1);
-  setSyncStatus(true);
+  try {
+    const { error } = await db.from('household_tasks').upsert({
+      task_id: id, done: true, done_by: who, points: pts, checked_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    const e2 = await applyScoreDelta(d.lena, d.pascal);
+    if (e2) throw e2;
+    setSyncStatus(true);
+  } catch (e) {
+    console.error('check', e);
+    // Speichern fehlgeschlagen → UI zurückrollen, damit nichts "erfunden" wird
+    scores.lena -= d.lena;
+    scores.pascal -= d.pascal;
+    delete tasksCache[id];
+    el.classList.remove('done');
+    updateScoreboard();
+    if (av) updateProgress(av.id);
+    setSyncStatus(false, 'Fehler beim Speichern');
+  } finally {
+    delete el.dataset.busy;
+  }
 }
 
 async function uncheck(el) {
   const id = el.dataset.id;
   const prev = tasksCache[id];
+  if (!prev) { el.classList.remove('done'); return; }
 
+  const d = scoreDelta(prev.done_by, prev.points);
+  // Nicht unter 0 abziehen (z.B. nach manuellem Monats-Reset)
+  d.lena = Math.min(d.lena, scores.lena);
+  d.pascal = Math.min(d.pascal, scores.pascal);
+
+  el.dataset.busy = '1';
   el.classList.remove('done');
-
-  if (prev) {
-    if (prev.done_by === 'lena') scores.lena = Math.max(0, scores.lena - prev.points);
-    else if (prev.done_by === 'pascal') scores.pascal = Math.max(0, scores.pascal - prev.points);
-    else {
-      scores.lena = Math.max(0, scores.lena - Math.ceil(prev.points/2));
-      scores.pascal = Math.max(0, scores.pascal - Math.floor(prev.points/2));
-    }
-    delete tasksCache[id];
-  }
+  scores.lena -= d.lena;
+  scores.pascal -= d.pascal;
+  delete tasksCache[id];
   updateScoreboard();
   const av = document.querySelector('.view.active');
   if (av) updateProgress(av.id);
 
   setSyncStatus(false);
-  await db.from('household_tasks').delete().eq('task_id', id);
-  await db.from('household_scores').update({
-    lena_points: scores.lena, pascal_points: scores.pascal
-  }).eq('id', 1);
-  setSyncStatus(true);
+  try {
+    const { error } = await db.from('household_tasks').delete().eq('task_id', id);
+    if (error) throw error;
+    const e2 = await applyScoreDelta(-d.lena, -d.pascal);
+    if (e2) throw e2;
+    setSyncStatus(true);
+  } catch (e) {
+    console.error('uncheck', e);
+    scores.lena += d.lena;
+    scores.pascal += d.pascal;
+    tasksCache[id] = prev;
+    el.classList.add('done');
+    updateScoreboard();
+    if (av) updateProgress(av.id);
+    setSyncStatus(false, 'Fehler beim Speichern');
+  } finally {
+    delete el.dataset.busy;
+  }
 }
 
 // ── CONFETTI ──
@@ -353,8 +413,16 @@ async function resetScores() {
   if (av) updateProgress(av.id);
 
   setSyncStatus(false);
-  await db.from('household_tasks').delete().neq('task_id', '');
-  await db.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1);
+  const [r1, r2] = await Promise.all([
+    db.from('household_tasks').delete().neq('task_id', ''),
+    db.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1),
+  ]);
+  if (r1.error || r2.error) {
+    console.error('resetScores', r1.error || r2.error);
+    setSyncStatus(false, 'Fehler beim Zurücksetzen');
+    await loadScores(); await loadTasks(); restoreChecks(); updateScoreboard();
+    return;
+  }
   setSyncStatus(true);
 }
 
@@ -383,6 +451,9 @@ function subscribeRealtime() {
       if (payload.new) {
         scores.lena = Number(payload.new.lena_points) || 0;
         scores.pascal = Number(payload.new.pascal_points) || 0;
+        // Nach einem Monats-Reset (auf dem anderen Gerät) darf das
+        // Ziel-Banner beim nächsten Erreichen wieder erscheinen.
+        if (scores.lena + scores.pascal < GOAL) goalShown = false;
         updateScoreboard();
       }
     })
@@ -411,12 +482,12 @@ function handleTaskChange(payload) {
   if (av) updateProgress(av.id);
 }
 
-function setSyncStatus(online) {
+function setSyncStatus(online, msg) {
   const dot = document.getElementById('sync-dot');
   const text = document.getElementById('sync-text');
   if (!dot || !text) return;
   if (online) { dot.classList.remove('offline'); text.textContent = 'verbunden'; }
-  else { dot.classList.add('offline'); text.textContent = 'speichert…'; }
+  else { dot.classList.add('offline'); text.textContent = msg || 'speichert…'; }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
