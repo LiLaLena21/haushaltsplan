@@ -422,12 +422,12 @@ let earnedBadges = {};
 
 const BADGES = [
   { id: 'first-bamboo', icon: '🎋', name: 'Erster Bambus', desc: 'Die allererste Aufgabe abgehakt' },
-  { id: 'early-bird',   icon: '🌅', name: 'Früher Vogel',  desc: 'Eine Aufgabe vor 8 Uhr erledigt' },
+  { id: 'early-bird',   icon: '🌅', name: 'Früher Vogel',  desc: 'Eine Aufgabe vor 9 Uhr erledigt' },
   { id: 'night-owl',    icon: '🦉', name: 'Nachteule',     desc: 'Eine Aufgabe nach 22 Uhr erledigt' },
   { id: 'cat-butler',   icon: '🐱', name: 'Katzen-Butler', desc: 'Alle Katzen-Tagesaufgaben an einem Tag' },
-  { id: 'clean-sweep',  icon: '🧹', name: 'Tagessieg',     desc: 'Alle täglichen Aufgaben geschafft' },
-  { id: 'streak-3',     icon: '🔥', name: '3er-Serie',     desc: '3 Tage in Folge alles Tägliche geschafft' },
-  { id: 'streak-7',     icon: '⚡', name: 'Wochen-Serie',  desc: '7 Tage in Folge alles Tägliche geschafft' },
+  { id: 'clean-sweep',  icon: '🧹', name: 'Tagessieg',     desc: 'Alle täglichen Aufgaben geschafft („alle 2 Tage" zählt nicht mit)' },
+  { id: 'streak-3',     icon: '🔥', name: '3er-Serie',     desc: '3 Tage in Folge den Tagessieg geholt' },
+  { id: 'streak-7',     icon: '⚡', name: 'Wochen-Serie',  desc: '7 Tage in Folge den Tagessieg geholt' },
   { id: 'halfway',      icon: '🌓', name: 'Halbzeit',      desc: 'Die Hälfte des Bambus-Ziels gesammelt' },
   { id: 'goal',         icon: '🏆', name: 'Ziel erreicht', desc: '375 Bambus – der Panda ist überglücklich' },
 ];
@@ -462,11 +462,18 @@ function renderStreak() {
   chip.title = 'Tage in Folge alles Tägliche geschafft · Rekord: ' + stats.best_streak;
 }
 
+// Pflicht-Aufgaben des Tages: alles Tägliche OHNE "alle 2 Tage"-Aufgaben,
+// denn die werden absichtlich nicht jeden Tag gemacht.
+function requiredDailyTasks() {
+  return Array.from(document.querySelectorAll('#view-taeglich .task'))
+    .filter(t => !t.querySelector('.freq-label'));
+}
+
 async function checkStreak() {
   if (!statsAvailable) return;
-  const view = document.getElementById('view-taeglich');
-  const all = view.querySelectorAll('.task').length;
-  const done = view.querySelectorAll('.task.done').length;
+  const req = requiredDailyTasks();
+  const all = req.length;
+  const done = req.filter(t => t.classList.contains('done')).length;
   renderStreak();
   if (all === 0 || done < all) return;
 
@@ -502,12 +509,12 @@ function checkBadges(who) {
   const total = scores.lena + scores.pascal;
   const h = new Date().getHours();
   if (total > 0) awardBadge('first-bamboo', who);
-  if (h < 8) awardBadge('early-bird', who);
+  if (h < 9) awardBadge('early-bird', who);
   if (h >= 22) awardBadge('night-owl', who);
   const catIds = ['t-k-m', 't-k-mi', 't-k-a', 't-k-klo'];
   if (catIds.every(i => tasksCache[i] && tasksCache[i].done)) awardBadge('cat-butler', who);
-  const view = document.getElementById('view-taeglich');
-  if (view && view.querySelectorAll('.task').length === view.querySelectorAll('.task.done').length) awardBadge('clean-sweep', who);
+  const req = requiredDailyTasks();
+  if (req.length > 0 && req.every(t => t.classList.contains('done'))) awardBadge('clean-sweep', who);
   if (total >= Math.ceil(GOAL / 2)) awardBadge('halfway', null);
   if (total >= GOAL) awardBadge('goal', null);
 }
@@ -516,10 +523,12 @@ function openBadges() {
   const grid = document.getElementById('badges-grid');
   grid.innerHTML = '';
   BADGES.forEach(b => {
-    const earned = !!earnedBadges[b.id];
+    const e = earnedBadges[b.id];
     const card = document.createElement('div');
-    card.className = 'badge-card ' + (earned ? 'earned' : 'locked');
-    card.innerHTML = '<div class="bi">' + b.icon + '</div><div class="bn">' + b.name + '</div><div class="bd">' + b.desc + '</div>';
+    card.className = 'badge-card ' + (e ? 'earned' : 'locked');
+    const byName = e && (e.earned_by === 'lena' ? 'Lena' : e.earned_by === 'pascal' ? 'Pascal' : e.earned_by === 'together' ? 'Lena & Pascal' : null);
+    card.innerHTML = '<div class="bi">' + b.icon + '</div><div class="bn">' + b.name + '</div><div class="bd">' + b.desc + '</div>'
+      + (byName ? '<div class="bby">geholt von ' + byName + '</div>' : '');
     grid.appendChild(card);
   });
   document.getElementById('badges-modal').classList.add('visible');
