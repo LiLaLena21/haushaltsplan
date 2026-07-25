@@ -2,6 +2,32 @@
 // Haushaltsplan – App-Logik mit Supabase
 // ════════════════════════════════════════
 
+// ── VERSION & CHANGELOG ──
+const APP_VERSION = '1.6';
+const CHANGELOG = [
+  { v: '1.6', date: '25.07.2026', items: [
+    '🐼 Panda deutlich größer – wächst jetzt sichtbar von Stufe zu Stufe',
+    '🏅 Abzeichen-Regal zeigt immer alle 9 Abzeichen (offene ausgegraut)',
+    '🧹 Tagessieg & Serie schon ab 70 % der Tagesaufgaben',
+    '🌅 Früher Vogel gilt jetzt vor 9 Uhr',
+    '🎫 „Was ist neu?"-Updates wie dieses hier',
+  ]},
+  { v: '1.5', date: '25.07.2026', items: [
+    '🎋 Bambus-Hintergrund kräftiger, mit Tatzenspuren',
+    '📐 Neues Spalten-Layout – alles auf einen Blick, kein Scrollen in Spalten',
+    '✨ Süße neue Chibi-Pandas',
+  ]},
+  { v: '1.4', date: '25.07.2026', items: [
+    '⚔️ Duell-Leiste Lena vs Pascal mit frechen Sprüchen',
+    '🔥 Tage-Serie & 9 freischaltbare Abzeichen',
+    '🎉 Panda hüpft beim Abhaken, Bambus fliegt zum Punktestand',
+  ]},
+  { v: '1.3', date: '25.07.2026', items: [
+    '🐛 Bugfixes: Mitternachts-Reset, Punkteverlust bei gleichzeitigem Abhaken',
+    '📱 Mobile-Ansicht & Fehleranzeige beim Speichern',
+  ]},
+];
+
 const GOAL = 375;
 const STAGES = [
   {min:0,   max:75,  id:'s-baby',  label:'Baby Panda 🐼'},
@@ -559,6 +585,35 @@ function closeBadges() {
   document.getElementById('badges-modal').classList.remove('visible');
 }
 
+// ── WAS IST NEU? ──
+function openWhatsNew() {
+  const list = document.getElementById('whatsnew-list');
+  list.innerHTML = '';
+  CHANGELOG.forEach(rel => {
+    const h = document.createElement('div');
+    h.className = 'wn-version';
+    h.textContent = 'Version ' + rel.v + ' · ' + rel.date;
+    list.appendChild(h);
+    rel.items.forEach(it => {
+      const d = document.createElement('div');
+      d.className = 'wn-item';
+      d.textContent = it;
+      list.appendChild(d);
+    });
+  });
+  document.getElementById('whatsnew-modal').classList.add('visible');
+}
+function closeWhatsNew() {
+  document.getElementById('whatsnew-modal').classList.remove('visible');
+  localStorage.setItem('hp-seen-version', APP_VERSION);
+}
+function maybeShowWhatsNew() {
+  const seen = localStorage.getItem('hp-seen-version');
+  if (seen === APP_VERSION) return;
+  if (seen === null && !localStorage.getItem('hp-supabase-url')) return; // Erstinstallation: nicht nerven
+  setTimeout(openWhatsNew, 800);
+}
+
 // ── CONFETTI ──
 function spawnConfetti() {
   const container = document.getElementById('confetti-container');
@@ -772,5 +827,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bm) bm.addEventListener('click', e => {
     if (e.target === e.currentTarget) closeBadges();
   });
+  const wn = document.getElementById('whatsnew-modal');
+  if (wn) wn.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeWhatsNew();
+  });
+  const vl = document.getElementById('version-label');
+  if (vl) vl.textContent = 'v' + APP_VERSION;
+  maybeShowWhatsNew();
   init();
 });

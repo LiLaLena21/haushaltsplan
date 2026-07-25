@@ -120,6 +120,16 @@
   .badge-card.locked{opacity:.32;filter:grayscale(1);}
   .badge-card .bby{font-size:.5rem;color:var(--gold);margin-top:.2rem;}
 
+  /* WAS IST NEU? */
+  .modal.whatsnew{max-width:420px;text-align:left;max-height:80vh;overflow-y:auto;}
+  .modal.whatsnew h3{text-align:center;}
+  #whatsnew-list{margin:0 0 1.1rem;}
+  .wn-version{font-size:.68rem;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;margin:.9rem 0 .35rem;border-bottom:1px solid var(--border);padding-bottom:.25rem;}
+  .wn-version:first-child{margin-top:0;}
+  .wn-item{font-size:.72rem;color:var(--ink);line-height:1.5;padding:.12rem 0 .12rem .2rem;}
+  #version-label{background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:.6rem;cursor:pointer;padding:.1rem .3rem;border-radius:4px;transition:color .15s;}
+  #version-label:hover{color:var(--gold);}
+
   /* TOAST */
   #toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface2);border:1px solid var(--gold);color:var(--ink);padding:.6rem 1.1rem;border-radius:8px;font-size:.76rem;opacity:0;pointer-events:none;transition:all .35s;z-index:350;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:90vw;text-align:center;}
   #toast.visible{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -244,6 +254,14 @@
 </div>
 
 <div id="toast"></div>
+
+<div class="modal-overlay" id="whatsnew-modal">
+  <div class="modal whatsnew">
+    <h3>🎫 Was ist neu?</h3>
+    <div id="whatsnew-list"></div>
+    <div class="modal-btns"><button class="mbtn cancel" onclick="closeWhatsNew()">Alles klar!</button></div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="badges-modal">
   <div class="modal badges">
@@ -441,6 +459,7 @@
       <div class="legend-item"><div class="dot wer"></div>Wer kann</div>
       <div class="legend-item"><div class="dot gem"></div>Gemeinsam</div>
       <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">verbunden</span></div>
+      <button id="version-label" onclick="openWhatsNew()" title="Was ist neu?">v1.6</button>
     </div>
   </div>
 
@@ -568,6 +587,6 @@
   </div>
 </div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
