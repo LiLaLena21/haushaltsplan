@@ -3,28 +3,33 @@
 // ════════════════════════════════════════
 
 // ── VERSION & CHANGELOG ──
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.1.3';
 const CHANGELOG = [
-  { v: '1.6', date: '25.07.2026', items: [
+  { v: '1.1.3', date: '25.07.2026', items: [
+    '🎫 „Was ist neu?"-Updates wie dieses hier',
+  ]},
+  { v: '1.1.2', date: '25.07.2026', items: [
     '🐼 Panda deutlich größer – wächst jetzt sichtbar von Stufe zu Stufe',
     '🏅 Abzeichen-Regal zeigt immer alle 9 Abzeichen (offene ausgegraut)',
     '🧹 Tagessieg & Serie schon ab 70 % der Tagesaufgaben',
     '🌅 Früher Vogel gilt jetzt vor 9 Uhr',
-    '🎫 „Was ist neu?"-Updates wie dieses hier',
   ]},
-  { v: '1.5', date: '25.07.2026', items: [
+  { v: '1.1.1', date: '25.07.2026', items: [
+    '✨ Süßere Chibi-Pandas',
     '🎋 Bambus-Hintergrund kräftiger, mit Tatzenspuren',
     '📐 Neues Spalten-Layout – alles auf einen Blick, kein Scrollen in Spalten',
-    '✨ Süße neue Chibi-Pandas',
   ]},
-  { v: '1.4', date: '25.07.2026', items: [
+  { v: '1.1.0', date: '25.07.2026', items: [
     '⚔️ Duell-Leiste Lena vs Pascal mit frechen Sprüchen',
     '🔥 Tage-Serie & 9 freischaltbare Abzeichen',
     '🎉 Panda hüpft beim Abhaken, Bambus fliegt zum Punktestand',
   ]},
-  { v: '1.3', date: '25.07.2026', items: [
+  { v: '1.0.1', date: '25.07.2026', items: [
     '🐛 Bugfixes: Mitternachts-Reset, Punkteverlust bei gleichzeitigem Abhaken',
     '📱 Mobile-Ansicht & Fehleranzeige beim Speichern',
+  ]},
+  { v: '1.0.0', date: '2026', items: [
+    '🏠 Der Haushaltsplan: Aufgaben, Bambus-Punkte, Panda & Realtime-Sync',
   ]},
 ];
 
