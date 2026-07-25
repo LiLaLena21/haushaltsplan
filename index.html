@@ -23,11 +23,9 @@
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Mono',monospace;color:var(--ink);font-size:16px;}
   /* Bambuswald-Silhouetten links & rechts */
-  body::before,body::after{content:'';position:fixed;top:0;bottom:0;width:140px;pointer-events:none;z-index:0;opacity:.055;background-repeat:repeat-y;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='620' viewBox='0 0 140 620'><g fill='%236ee7b7'><rect x='22' y='0' width='10' height='620' rx='5'/><rect x='19' y='95' width='16' height='6' rx='3'/><rect x='19' y='240' width='16' height='6' rx='3'/><rect x='19' y='390' width='16' height='6' rx='3'/><rect x='19' y='535' width='16' height='6' rx='3'/><rect x='78' y='0' width='8' height='620' rx='4'/><rect x='75' y='160' width='14' height='5' rx='2.5'/><rect x='75' y='320' width='14' height='5' rx='2.5'/><rect x='75' y='470' width='14' height='5' rx='2.5'/><path d='M32 125 q34 -20 58 -9 q-29 18 -58 9z'/><path d='M86 345 q30 -18 50 -7 q-24 16 -50 7z'/><path d='M32 415 q28 -16 48 -6 q-24 14 -48 6z'/></g><g fill='%23e8eaf0'><g transform='rotate(-18 112 205)'><ellipse cx='112' cy='205' rx='8' ry='6.5'/><circle cx='103' cy='195' r='3'/><circle cx='111' cy='192' r='3'/><circle cx='119' cy='195' r='3'/></g><g transform='rotate(14 116 245)'><ellipse cx='116' cy='245' rx='8' ry='6.5'/><circle cx='107' cy='235' r='3'/><circle cx='115' cy='232' r='3'/><circle cx='123' cy='235' r='3'/></g><g transform='rotate(-10 108 560)'><ellipse cx='108' cy='560' rx='8' ry='6.5'/><circle cx='99' cy='550' r='3'/><circle cx='107' cy='547' r='3'/><circle cx='115' cy='550' r='3'/></g><g transform='rotate(16 114 600)'><ellipse cx='114' cy='600' rx='8' ry='6.5'/><circle cx='105' cy='590' r='3'/><circle cx='113' cy='587' r='3'/><circle cx='121' cy='590' r='3'/></g></g></svg>");}
+  body::before,body::after{content:'';position:fixed;top:0;bottom:0;width:175px;pointer-events:none;z-index:0;opacity:.13;background-repeat:repeat-y;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='175' height='640' viewBox='0 0 175 640'><g fill='%236ee7b7'><rect x='20' y='0' width='12' height='640' rx='6'/><rect x='16.5' y='90' width='19' height='7' rx='3.5'/><rect x='16.5' y='235' width='19' height='7' rx='3.5'/><rect x='16.5' y='385' width='19' height='7' rx='3.5'/><rect x='16.5' y='530' width='19' height='7' rx='3.5'/><rect x='72' y='0' width='9' height='640' rx='4.5'/><rect x='69' y='155' width='15' height='6' rx='3'/><rect x='69' y='315' width='15' height='6' rx='3'/><rect x='69' y='465' width='15' height='6' rx='3'/><rect x='120' y='0' width='7' height='640' rx='3.5' opacity='.7'/><rect x='117.5' y='120' width='12' height='5' rx='2.5' opacity='.7'/><rect x='117.5' y='280' width='12' height='5' rx='2.5' opacity='.7'/><rect x='117.5' y='440' width='12' height='5' rx='2.5' opacity='.7'/><rect x='117.5' y='590' width='12' height='5' rx='2.5' opacity='.7'/><path d='M32 118 q36 -22 62 -10 q-31 20 -62 10z'/><path d='M81 340 q32 -19 54 -8 q-26 17 -54 8z'/><path d='M32 410 q30 -17 51 -7 q-25 15 -51 7z'/><path d='M81 175 q26 -16 44 -6 q-21 14 -44 6z' opacity='.8'/><path d='M127 300 q24 -14 40 -5 q-19 12 -40 5z' opacity='.6'/><path d='M32 555 q33 -20 56 -9 q-28 18 -56 9z'/><path d='M127 605 q22 -13 37 -5 q-18 11 -37 5z' opacity='.6'/></g><g fill='%23e8eaf0' opacity='.55'><g transform='rotate(-18 148 210)'><ellipse cx='148' cy='210' rx='8' ry='6.5'/><circle cx='139' cy='200' r='3'/><circle cx='147' cy='197' r='3'/><circle cx='155' cy='200' r='3'/></g><g transform='rotate(14 152 252)'><ellipse cx='152' cy='252' rx='8' ry='6.5'/><circle cx='143' cy='242' r='3'/><circle cx='151' cy='239' r='3'/><circle cx='159' cy='242' r='3'/></g><g transform='rotate(-12 144 560)'><ellipse cx='144' cy='560' rx='8' ry='6.5'/><circle cx='135' cy='550' r='3'/><circle cx='143' cy='547' r='3'/><circle cx='151' cy='550' r='3'/></g></g></svg>");}
   body::before{left:0;}
   body::after{right:0;transform:scaleX(-1);}
-  /* Schlafender Panda unten rechts */
-  #bg-panda{position:fixed;right:120px;bottom:6px;width:190px;pointer-events:none;z-index:0;opacity:.09;}
   #app{display:flex;flex-direction:column;height:100vh;padding:.6rem .85rem .4rem;gap:.45rem;position:relative;z-index:1;}
 
   /* CONFETTI */
@@ -56,8 +54,9 @@
   .s-val.lena{color:var(--lena);} .s-val.pascal{color:var(--pascal);}
   .s-bamboo{font-size:.68rem;color:var(--bamboo);}
   #panda-center{display:flex;align-items:center;gap:.9rem;flex:1;min-width:0;}
-  #panda-svg-wrap{position:relative;flex-shrink:0;}
-  #panda-svg-wrap svg{width:86px;height:86px;display:block;animation:pandaBob 3.4s ease-in-out infinite;}
+  #panda-svg-wrap{position:relative;flex-shrink:0;display:flex;align-items:flex-end;}
+  /* Der Panda wächst sichtbar mit: Baby klein, Endstufe groß (ragt oben etwas raus) */
+  #panda-svg-wrap svg{width:86px;height:86px;display:block;animation:pandaBob 3.4s ease-in-out infinite;transition:width .7s ease,height .7s ease;margin:-14px 0 -4px;}
   @keyframes pandaBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
   @keyframes pandaJump{0%{transform:translateY(0) scale(1);}30%{transform:translateY(-11px) scale(1.09) rotate(-4deg);}55%{transform:translateY(1px) scale(.96);}75%{transform:translateY(-5px) scale(1.04) rotate(3deg);}100%{transform:translateY(0) scale(1);}}
   #panda-svg-wrap.happy svg{animation:pandaJump .9s ease;}
@@ -102,6 +101,11 @@
   #streak-chip{color:#ffb04d;background:rgba(255,176,77,.1);border:1px solid rgba(255,176,77,.25);padding:.14rem .5rem;border-radius:10px;white-space:nowrap;flex-shrink:0;cursor:default;}
   #badges-btn{background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--ink);cursor:pointer;padding:.14rem .55rem;font-size:.72rem;font-family:'DM Mono',monospace;transition:all .15s;flex-shrink:0;}
   #badges-btn:hover{border-color:var(--gold);color:var(--gold);}
+  /* Immer sichtbares Abzeichen-Regal */
+  #badge-shelf{display:flex;gap:.28rem;cursor:pointer;flex-shrink:0;}
+  .shelf-badge{width:24px;height:24px;border-radius:50%;background:rgba(212,168,83,.14);border:1px solid rgba(212,168,83,.55);display:flex;align-items:center;justify-content:center;font-size:.72rem;box-shadow:0 0 8px rgba(212,168,83,.18);}
+  .shelf-badge.new{animation:badgePop .7s cubic-bezier(.3,1.6,.5,1);}
+  @keyframes badgePop{0%{transform:scale(0) rotate(-30deg);}70%{transform:scale(1.25) rotate(8deg);}100%{transform:scale(1) rotate(0);}}
 
   /* ERFOLGE-MODAL */
   .modal.badges{max-width:430px;}
@@ -208,27 +212,6 @@
 
 <div id="confetti-container"></div>
 
-<!-- Schlafender Panda (Deko) -->
-<div id="bg-panda" aria-hidden="true">
-  <svg viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="135" cy="92" rx="72" ry="32" fill="#e8eaf0"/>
-    <ellipse cx="196" cy="108" rx="17" ry="9" fill="#0f1117"/>
-    <ellipse cx="150" cy="116" rx="20" ry="8" fill="#0f1117"/>
-    <circle cx="62" cy="76" r="31" fill="#e8eaf0"/>
-    <circle cx="41" cy="53" r="10" fill="#0f1117"/>
-    <circle cx="84" cy="51" r="10" fill="#0f1117"/>
-    <ellipse cx="51" cy="77" rx="7.5" ry="9.5" fill="#0f1117" transform="rotate(-10 51 77)"/>
-    <ellipse cx="75" cy="76" rx="7.5" ry="9.5" fill="#0f1117" transform="rotate(10 75 76)"/>
-    <path d="M47 77 q3 2.4 6 0" stroke="#e8eaf0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-    <path d="M71 76 q3 2.4 6 0" stroke="#e8eaf0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-    <ellipse cx="63" cy="90" rx="3" ry="2.2" fill="#0f1117"/>
-    <path d="M58 96 q5 3.5 10 0" stroke="#0f1117" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-    <ellipse cx="93" cy="103" rx="15" ry="8" fill="#0f1117"/>
-    <text x="110" y="34" font-size="22" fill="#e8eaf0" font-family="monospace">z</text>
-    <text x="128" y="20" font-size="15" fill="#e8eaf0" font-family="monospace">z</text>
-    <text x="142" y="10" font-size="10" fill="#e8eaf0" font-family="monospace">z</text>
-  </svg>
-</div>
 
 <!-- GOAL BANNER -->
 <div id="goal-banner">
@@ -441,7 +424,8 @@
     </div>
     <span class="duel-name pascal">Pascal</span>
     <span id="duel-line">Wer sammelt heute den ersten Bambus? 👀</span>
-    <span id="streak-chip" title="Tage in Folge alles Tägliche geschafft">🔥 0</span>
+    <span id="streak-chip" title="Tage in Folge den Tagessieg geholt (70 % der Tagesaufgaben)">🔥 0</span>
+    <div id="badge-shelf" onclick="openBadges()" title="Eure Erfolge – klicken für Details"></div>
     <button id="badges-btn" onclick="openBadges()">🏅 Erfolge</button>
   </div>
 
