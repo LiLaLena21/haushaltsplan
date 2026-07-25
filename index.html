@@ -15,10 +15,24 @@
     --wer:#a78bfa; --wer-soft:rgba(167,139,250,0.13);
     --gem:#c4a8f5; --gem-soft:rgba(196,168,245,0.13);
     --bamboo:#6ee7b7; --bamboo-soft:rgba(110,231,183,0.13);
+    --gold:#d4a853;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Mono',monospace;color:var(--ink);font-size:16px;}
   #app{display:flex;flex-direction:column;height:100vh;padding:.6rem .85rem .4rem;gap:.45rem;}
+
+  /* CONFETTI */
+  @keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(110vh) rotate(720deg);opacity:0;}}
+  #confetti-container{position:fixed;inset:0;pointer-events:none;z-index:300;overflow:hidden;}
+
+  /* GOAL BANNER */
+  #goal-banner{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:250;align-items:center;justify-content:center;padding:2rem;}
+  #goal-banner.visible{display:flex;}
+  #goal-box{background:linear-gradient(135deg,#1a1d27,#22263a);border:2px solid var(--gold);border-radius:16px;padding:2rem 2.5rem;text-align:center;max-width:340px;width:100%;box-shadow:0 0 60px rgba(212,168,83,.3);}
+  #goal-box h2{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--gold);margin-bottom:.4rem;}
+  #goal-box .goal-bamboo{font-size:1.1rem;color:var(--bamboo);margin-bottom:.75rem;}
+  #goal-winner{font-size:.85rem;color:var(--ink);line-height:1.5;margin-bottom:1.25rem;}
+  #goal-box button{background:var(--gold);color:#0f1117;border:none;border-radius:6px;padding:.6rem 1.5rem;font-family:'DM Mono',monospace;font-size:.8rem;font-weight:500;cursor:pointer;}
 
   #header-row{display:flex;align-items:center;gap:.9rem;flex-shrink:0;}
   #title h1{font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,3.2vw,2.4rem);line-height:1;}
@@ -39,8 +53,6 @@
   .bar-labels{display:flex;justify-content:space-between;font-size:.63rem;color:var(--muted);margin-bottom:.22rem;}
   .bbar{height:7px;background:var(--border);border-radius:4px;overflow:hidden;}
   .bfill{height:100%;background:var(--bamboo);border-radius:4px;transition:width .4s;}
-  #goal-reached{display:none;font-size:.67rem;color:var(--bamboo);margin-top:.3rem;line-height:1.4;}
-  #goal-reached.visible{display:block;}
 
   .reset-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.07em;text-transform:uppercase;padding:.32rem .75rem;cursor:pointer;border-radius:4px;white-space:nowrap;transition:all .15s;flex-shrink:0;}
   .reset-btn:hover{border-color:var(--lena);color:var(--lena);}
@@ -117,12 +129,23 @@
   #setup-box{max-width:480px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;}
   #setup-box h2{font-family:'DM Serif Display',serif;margin-bottom:.8rem;}
   #setup-box p{font-size:.85rem;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
-  #setup-box code{background:var(--bg);padding:.1rem .4rem;border-radius:3px;font-size:.8rem;}
 </style>
 </head>
 <body>
 
-<!-- Falls Supabase-Konfiguration fehlt -->
+<div id="confetti-container"></div>
+
+<!-- GOAL BANNER -->
+<div id="goal-banner">
+  <div id="goal-box">
+    <h2>🎉 Ziel erreicht!</h2>
+    <div class="goal-bamboo">375 Bambus 🎋</div>
+    <div id="goal-winner"></div>
+    <button onclick="closeGoalBanner()">Weiter feiern 🎊</button>
+  </div>
+</div>
+
+<!-- SETUP -->
 <div id="setup-overlay" style="display:none;">
   <div id="setup-box">
     <h2>⚙️ Einrichtung</h2>
@@ -167,18 +190,101 @@
       <div id="panda-center">
         <div id="panda-svg-wrap">
           <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-            <g id="s-egg"><ellipse cx="50" cy="58" rx="22" ry="28" fill="#1e2030" stroke="#444" stroke-width="1.5"/><ellipse cx="50" cy="55" rx="14" ry="18" fill="#2a2d42" opacity=".5"/></g>
-            <g id="s-baby" display="none"><circle cx="50" cy="62" r="20" fill="#d8d8d8"/><circle cx="38" cy="54" r="8" fill="#1a1a1a"/><circle cx="62" cy="54" r="8" fill="#1a1a1a"/><circle cx="50" cy="62" r="16" fill="#f0f0f0"/><circle cx="44" cy="60" r="3.5" fill="#111"/><circle cx="56" cy="60" r="3.5" fill="#111"/><circle cx="45" cy="59" r="1" fill="white"/><circle cx="57" cy="59" r="1" fill="white"/><path d="M45 66 Q50 70 55 66" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/></g>
-            <g id="s-growing" display="none"><circle cx="50" cy="60" r="22" fill="#d8d8d8"/><circle cx="35" cy="50" r="10" fill="#1a1a1a"/><circle cx="65" cy="50" r="10" fill="#1a1a1a"/><circle cx="50" cy="60" r="18" fill="#f0f0f0"/><circle cx="43" cy="57" r="4" fill="#111"/><circle cx="57" cy="57" r="4" fill="#111"/><circle cx="44.5" cy="56" r="1.2" fill="white"/><circle cx="58.5" cy="56" r="1.2" fill="white"/><ellipse cx="50" cy="63" rx="4" ry="2.5" fill="#ffb3c6" opacity=".7"/><path d="M44 68 Q50 73 56 68" stroke="#555" stroke-width="1.5" fill="none" stroke-linecap="round"/><text x="50" y="95" text-anchor="middle" font-size="10">🎋</text></g>
-            <g id="s-big" display="none"><circle cx="50" cy="58" r="25" fill="#d8d8d8"/><circle cx="32" cy="46" r="12" fill="#1a1a1a"/><circle cx="68" cy="46" r="12" fill="#1a1a1a"/><circle cx="50" cy="58" r="21" fill="#f0f0f0"/><circle cx="42" cy="54" r="5" fill="#111"/><circle cx="58" cy="54" r="5" fill="#111"/><circle cx="43.5" cy="52.5" r="1.5" fill="white"/><circle cx="59.5" cy="52.5" r="1.5" fill="white"/><ellipse cx="50" cy="61" rx="5" ry="3" fill="#ffb3c6" opacity=".7"/><path d="M43 67 Q50 73 57 67" stroke="#444" stroke-width="2" fill="none" stroke-linecap="round"/><text x="50" y="97" text-anchor="middle" font-size="11">🎋🎋</text></g>
-            <g id="s-happy" display="none"><circle cx="50" cy="56" r="27" fill="#d8d8d8"/><circle cx="30" cy="43" r="13" fill="#111"/><circle cx="70" cy="43" r="13" fill="#111"/><circle cx="50" cy="56" r="23" fill="#f5f5f5"/><circle cx="41" cy="51" r="5.5" fill="#111"/><circle cx="59" cy="51" r="5.5" fill="#111"/><circle cx="42.5" cy="49.5" r="1.7" fill="white"/><circle cx="60.5" cy="49.5" r="1.7" fill="white"/><ellipse cx="50" cy="59" rx="5.5" ry="3.2" fill="#ffb3c6" opacity=".8"/><path d="M42 65 Q50 72 58 65" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/><text x="14" y="30" font-size="10">✨</text><text x="74" y="28" font-size="10">✨</text><text x="50" y="98" text-anchor="middle" font-size="12">🎋🎋🎋</text></g>
+            <!-- Baby Panda -->
+            <g id="s-baby">
+              <ellipse cx="50" cy="72" rx="18" ry="14" fill="#d8d8d8"/>
+              <circle cx="50" cy="52" r="22" fill="#d8d8d8"/>
+              <circle cx="36" cy="44" r="9" fill="#1a1a1a"/>
+              <circle cx="64" cy="44" r="9" fill="#1a1a1a"/>
+              <circle cx="50" cy="52" r="18" fill="#f0f0f0"/>
+              <circle cx="44" cy="50" r="5" fill="#111"/>
+              <circle cx="56" cy="50" r="5" fill="#111"/>
+              <circle cx="45.5" cy="48.5" r="1.5" fill="white"/>
+              <circle cx="57.5" cy="48.5" r="1.5" fill="white"/>
+              <ellipse cx="50" cy="56" rx="3" ry="2" fill="#ffb3c6" opacity=".8"/>
+              <path d="M46 61 Q50 64 54 61" stroke="#888" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <circle cx="36" cy="76" r="6" fill="#d8d8d8"/>
+              <circle cx="64" cy="76" r="6" fill="#d8d8d8"/>
+            </g>
+            <!-- Teenager Panda -->
+            <g id="s-teen" display="none">
+              <ellipse cx="50" cy="74" rx="20" ry="15" fill="#d8d8d8"/>
+              <circle cx="50" cy="50" r="24" fill="#d8d8d8"/>
+              <circle cx="34" cy="41" r="10" fill="#1a1a1a"/>
+              <circle cx="66" cy="41" r="10" fill="#1a1a1a"/>
+              <circle cx="50" cy="50" r="20" fill="#f0f0f0"/>
+              <circle cx="43" cy="48" r="4.5" fill="#111"/>
+              <circle cx="57" cy="48" r="4.5" fill="#111"/>
+              <circle cx="44.5" cy="46.5" r="1.4" fill="white"/>
+              <circle cx="58.5" cy="46.5" r="1.4" fill="white"/>
+              <ellipse cx="50" cy="54" rx="4" ry="2.5" fill="#ffb3c6" opacity=".7"/>
+              <path d="M44 60 Q50 65 56 60" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+              <rect x="72" y="20" width="5" height="60" rx="2.5" fill="#4a9e6e" opacity=".9"/>
+              <rect x="71" y="32" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="71" y="48" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="71" y="64" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <ellipse cx="66" cy="62" rx="6" ry="4" fill="#d8d8d8" transform="rotate(-30 66 62)"/>
+            </g>
+            <!-- Ausgewachsener Panda -->
+            <g id="s-adult" display="none">
+              <ellipse cx="50" cy="76" rx="22" ry="16" fill="#d8d8d8"/>
+              <circle cx="50" cy="50" r="26" fill="#d8d8d8"/>
+              <circle cx="32" cy="39" r="12" fill="#111"/>
+              <circle cx="68" cy="39" r="12" fill="#111"/>
+              <circle cx="50" cy="50" r="22" fill="#f0f0f0"/>
+              <circle cx="42" cy="47" r="5" fill="#111"/>
+              <circle cx="58" cy="47" r="5" fill="#111"/>
+              <circle cx="43.5" cy="45.5" r="1.6" fill="white"/>
+              <circle cx="59.5" cy="45.5" r="1.6" fill="white"/>
+              <ellipse cx="50" cy="54" rx="4.5" ry="2.8" fill="#ffb3c6" opacity=".75"/>
+              <path d="M43 61 Q50 67 57 61" stroke="#555" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <rect x="14" y="15" width="5" height="65" rx="2.5" fill="#4a9e6e"/>
+              <rect x="13" y="28" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="13" y="44" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="13" y="60" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="81" y="15" width="5" height="65" rx="2.5" fill="#4a9e6e"/>
+              <rect x="80" y="28" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="80" y="44" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="80" y="60" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+            </g>
+            <!-- Glücklicher Panda -->
+            <g id="s-happy" display="none">
+              <ellipse cx="50" cy="76" rx="23" ry="17" fill="#d8d8d8"/>
+              <circle cx="50" cy="48" r="27" fill="#d8d8d8"/>
+              <circle cx="31" cy="37" r="13" fill="#111"/>
+              <circle cx="69" cy="37" r="13" fill="#111"/>
+              <circle cx="50" cy="48" r="23" fill="#f5f5f5"/>
+              <circle cx="41" cy="45" r="5.5" fill="#111"/>
+              <circle cx="59" cy="45" r="5.5" fill="#111"/>
+              <circle cx="42.5" cy="43.5" r="1.8" fill="white"/>
+              <circle cx="60.5" cy="43.5" r="1.8" fill="white"/>
+              <ellipse cx="50" cy="52" rx="5" ry="3" fill="#ffb3c6" opacity=".9"/>
+              <path d="M41 59 Q50 68 59 59" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+              <rect x="5" y="10" width="5" height="70" rx="2.5" fill="#4a9e6e"/>
+              <rect x="4" y="22" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="4" y="38" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="4" y="54" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="14" y="5" width="5" height="65" rx="2.5" fill="#4a9e6e"/>
+              <rect x="13" y="18" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="13" y="34" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="13" y="50" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="81" y="10" width="5" height="70" rx="2.5" fill="#4a9e6e"/>
+              <rect x="80" y="22" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="80" y="38" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="80" y="54" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="90" y="5" width="5" height="65" rx="2.5" fill="#4a9e6e"/>
+              <rect x="89" y="18" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="89" y="34" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <rect x="89" y="50" width="7" height="3" rx="1.5" fill="#3d8a5e"/>
+              <text x="38" y="18" font-size="10" text-anchor="middle">✨</text>
+              <text x="62" y="16" font-size="10" text-anchor="middle">✨</text>
+            </g>
           </svg>
         </div>
         <div id="panda-info">
-          <div id="panda-label">Panda-Ei 🥚</div>
-          <div class="bar-labels"><span>🎋 <span id="total-bamboo">0</span> / 300</span><span id="goal-pct">0%</span></div>
+          <div id="panda-label">Baby Panda 🐼</div>
+          <div class="bar-labels"><span>🎋 <span id="total-bamboo">0</span> / 375</span><span id="goal-pct">0%</span></div>
           <div class="bbar"><div class="bfill" id="goal-fill" style="width:0%"></div></div>
-          <div id="goal-reached"></div>
         </div>
       </div>
       <div class="s-person">
@@ -218,7 +324,12 @@
           <div class="task" data-id="t-k-m" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Morgens füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
           <div class="task" data-id="t-k-mi" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Mittags füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
           <div class="task" data-id="t-k-a" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abends füttern</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="t-k-klo" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Katzenklo kontrollieren & ausmisten</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="t-k-klo" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Katzenklo kontrollieren & ausmisten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">👕 Wäsche</div>
+          <div class="task" data-id="t-w-w" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wäsche waschen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="t-w-f" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wäsche falten & einräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
         </div>
       </div>
       <div class="col">
@@ -227,11 +338,11 @@
           <div class="task" data-id="t-kue-aw" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abwaschen / Spülmaschine befüllen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
           <div class="task" data-id="t-kue-herd" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Arbeitsfläche & Herd abwischen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
           <div class="task" data-id="t-kue-sp" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Spülmaschine ausräumen <span class="freq-label">alle 2 Tage</span></div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="t-kue-bio" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Biomüll zusammen & runterbringen <span class="freq-label">alle 2 Tage</span></div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
         </div>
         <div class="section">
           <div class="section-header">🏠 Allgemein</div>
-          <div class="task" data-id="t-allg-l" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Sachen wegräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="t-allg-p" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Sachen wegräumen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="t-allg-wz" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wohnzimmertisch aufräumen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
         </div>
       </div>
     </div>
@@ -243,35 +354,46 @@
           <div class="section-header">🐱 Katzen</div>
           <div class="task" data-id="w-t-bürs" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Tarcin bürsten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
           <div class="task" data-id="w-s-bürs" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Sniegs bürsten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="w-s-ras" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Sniegs rasieren</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="w-k-klo" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Katzenklo gründlich reinigen & Streu wechseln</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-s-ras" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Sniegs rasieren</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
           <div class="task" data-id="w-k-brun" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Trinkbrunnen auffüllen & reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
         </div>
         <div class="section">
           <div class="section-header">🚿 Bad & WC</div>
-          <div class="task" data-id="w-bad-sp" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Spiegel & Waschbecken (Bad) putzen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="w-bad-to" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Toilette (Bad) reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="w-bad-gwc" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Gäste-WC reinigen (Klo + Waschbecken)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="w-bad-ht" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Handtücher wechseln</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-bad-sp" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Spiegel & Waschbecken putzen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-bad-to" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Toilette reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-gwc" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Gäste-WC reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-ht" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Handtücher wechseln</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-wisch" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Bad wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-gwcw" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Gäste-WC wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-bad-müll" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Mülleimer Bad & Gäste-WC leeren</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">💼 Büros</div>
+          <div class="task" data-id="w-büro-ls" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Schreibtisch aufräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-büro-lm" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Mülleimer leeren</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-büro-ps" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Schreibtisch aufräumen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="w-büro-pm" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Mülleimer leeren</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
         </div>
       </div>
       <div class="col">
         <div class="section">
           <div class="section-header">🍽️ Küche</div>
           <div class="task" data-id="w-kue-kü" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kühlschrank checken (Altes raus)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="w-kue-air" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Airfryer reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
-        </div>
-        <div class="section">
-          <div class="section-header">👕 Wäsche</div>
-          <div class="task" data-id="w-wae-w" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wäsche waschen (Waschtrockner starten)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="w-wae-a" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Klamotten aufhängen (in den Schrank)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
-          <div class="task" data-id="w-wae-f" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Klamotten falten & einräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-kue-air" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Airfryer / Grill reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="w-kue-müll" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Mülleimer leeren & runterbringen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-kue-pap" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Papiermüll wegbringen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
         </div>
         <div class="section">
           <div class="section-header">🏠 Wohnbereiche</div>
-          <div class="task" data-id="w-rob" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Boden frei räumen für den Roboter</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
           <div class="task" data-id="w-bal" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Balkon kehren / Ordnung</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="w-wohn" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Wohn- & Esszimmer aufräumen & abstauben <span class="freq-label">alle 2 Wochen</span></div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+          <div class="task" data-id="w-staub" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abstauben</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-müll-wohn" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Mülleimer leeren</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="w-wisch" data-pts="3" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Manuell wischen (alle Räume)</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 3</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="w-saug" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Staubsaugen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+        </div>
+        <div class="section">
+          <div class="section-header">🛒 Einkaufen</div>
+          <div class="task" data-id="w-eink" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Einkaufen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
         </div>
       </div>
     </div>
@@ -281,33 +403,28 @@
       <div class="col">
         <div class="section">
           <div class="section-header">🐱 Katzen</div>
-          <div class="task" data-id="m-k-vor" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Streu- & Futtervorrat prüfen & bestellen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="m-k-sp" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kratzbäume & Spielzeug prüfen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-k-kb" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kratzbäume enthaaren</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
         </div>
         <div class="section">
           <div class="section-header">🍽️ Küche (tief)</div>
           <div class="task" data-id="m-kue-kü" data-pts="3" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Kühlschrank komplett ausräumen & wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 3</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="m-kue-sch" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Küchenschränke – diesen Monat: ein Teil</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="m-kue-abl" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Vorratslager: Ablaufdaten checken</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
+          <div class="task" data-id="m-kue-sch" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Küchenschränke wischen</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
         </div>
         <div class="section">
           <div class="section-header">🚿 Bad (tief)</div>
           <div class="task" data-id="m-bad-du" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Dusche reinigen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="m-bad-abl" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abflüsse reinigen (Bad, Dusche, Küche)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="m-bad-abl" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abflüsse reinigen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
           <div class="task" data-id="m-bad-sch" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Badschrank aufräumen</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
+          <div class="task" data-id="m-bad-sta" data-pts="1" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Bad abstauben</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 1</span><div class="done-by wer"></div></div>
         </div>
       </div>
       <div class="col">
         <div class="section">
           <div class="section-header">🧹 Wohnung (tief)</div>
-          <div class="task" data-id="m-w-sau" data-pts="2" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Manuell saugen (Ecken, Kanten)</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 2</span><div class="done-by pascal">Pascal ✓</div></div>
-          <div class="task" data-id="m-w-wis" data-pts="2" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Manuell wischen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 2</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="m-w-fen" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Fenster – diesen Monat: ein Raum</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
-          <div class="task" data-id="m-w-sta" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Staubwischen: Regale, Heizkörper, Leisten</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-w-fen" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Fenster reinigen – einen Raum</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
+          <div class="task" data-id="m-w-ober" data-pts="2" data-who="wer" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Oberflächen abstauben</div><span class="badge wer">Wer kann</span> <span class="bbadge">🎋 2</span><div class="done-by wer"></div></div>
           <div class="task" data-id="m-w-abs" data-pts="2" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Abstellkammer Ordnung</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 2 (je 1)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
-          <div class="task" data-id="m-w-flur" data-pts="1" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Flur: Schuhe sortieren & wischen</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 1 (je 0,5)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
-          <div class="task" data-id="m-w-bürl" data-pts="1" data-who="lena" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Lenas Büro entstauben & aufräumen</div><span class="badge lena">Lena</span> <span class="bbadge">🎋 1</span><div class="done-by lena">Lena ✓</div></div>
-          <div class="task" data-id="m-w-bürp" data-pts="1" data-who="pascal" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Pascals Büro entstauben & aufräumen</div><span class="badge pascal">Pascal</span> <span class="bbadge">🎋 1</span><div class="done-by pascal">Pascal ✓</div></div>
+          <div class="task" data-id="m-w-flur" data-pts="1" data-who="together" onclick="toggle(this)"><div class="checkbox"><span class="checkmark">✓</span></div><div class="task-label">Flur: Schuhe & Jacken aufräumen</div><span class="badge gem">Gemeinsam</span> <span class="bbadge">🎋 1 (je 0,5)</span><div class="done-by gem">Lena & Pascal ✓</div></div>
         </div>
         <div class="section">
           <div class="section-header">🛏️ Schlafzimmer</div>
