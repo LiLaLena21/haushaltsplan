@@ -530,11 +530,13 @@ function renderBadgeShelf(newId) {
   if (!shelf) return;
   shelf.innerHTML = '';
   if (!badgesAvailable) return;
-  BADGES.filter(b => earnedBadges[b.id]).forEach(b => {
+  // Alle Abzeichen zeigen: geholte in Gold, offene ausgegraut
+  BADGES.forEach(b => {
+    const earned = !!earnedBadges[b.id];
     const d = document.createElement('div');
-    d.className = 'shelf-badge' + (b.id === newId ? ' new' : '');
+    d.className = 'shelf-badge ' + (earned ? 'earned' : 'locked') + (b.id === newId ? ' new' : '');
     d.textContent = b.icon;
-    d.title = b.name;
+    d.title = b.name + (earned ? ' ✓' : ' – noch offen');
     shelf.appendChild(d);
   });
 }
@@ -601,7 +603,7 @@ function closeGoalBanner() {
 }
 
 // ── SCOREBOARD / PANDA ──
-const STAGE_SIZES = { 's-baby': 78, 's-teen': 98, 's-adult': 116, 's-happy': 130 };
+const STAGE_SIZES = { 's-baby': 104, 's-teen': 122, 's-adult': 138, 's-happy': 152 };
 function updatePanda(total) {
   STAGES.forEach(s => document.getElementById(s.id).setAttribute('display', 'none'));
   const stage = STAGES.find(s => total >= s.min && total <= s.max) || STAGES[STAGES.length - 1];

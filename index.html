@@ -56,7 +56,7 @@
   #panda-center{display:flex;align-items:center;gap:.9rem;flex:1;min-width:0;}
   #panda-svg-wrap{position:relative;flex-shrink:0;display:flex;align-items:flex-end;}
   /* Der Panda wächst sichtbar mit: Baby klein, Endstufe groß (ragt oben etwas raus) */
-  #panda-svg-wrap svg{width:86px;height:86px;display:block;animation:pandaBob 3.4s ease-in-out infinite;transition:width .7s ease,height .7s ease;margin:-14px 0 -4px;}
+  #panda-svg-wrap svg{width:104px;height:104px;display:block;animation:pandaBob 3.4s ease-in-out infinite;transition:width .7s ease,height .7s ease;margin:-26px 0 -10px;}
   @keyframes pandaBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
   @keyframes pandaJump{0%{transform:translateY(0) scale(1);}30%{transform:translateY(-11px) scale(1.09) rotate(-4deg);}55%{transform:translateY(1px) scale(.96);}75%{transform:translateY(-5px) scale(1.04) rotate(3deg);}100%{transform:translateY(0) scale(1);}}
   #panda-svg-wrap.happy svg{animation:pandaJump .9s ease;}
@@ -103,7 +103,9 @@
   #badges-btn:hover{border-color:var(--gold);color:var(--gold);}
   /* Immer sichtbares Abzeichen-Regal */
   #badge-shelf{display:flex;gap:.28rem;cursor:pointer;flex-shrink:0;}
-  .shelf-badge{width:24px;height:24px;border-radius:50%;background:rgba(212,168,83,.14);border:1px solid rgba(212,168,83,.55);display:flex;align-items:center;justify-content:center;font-size:.72rem;box-shadow:0 0 8px rgba(212,168,83,.18);}
+  .shelf-badge{width:24px;height:24px;border-radius:50%;background:rgba(212,168,83,.14);border:1px solid rgba(212,168,83,.55);display:flex;align-items:center;justify-content:center;font-size:.72rem;box-shadow:0 0 8px rgba(212,168,83,.18);transition:all .2s;}
+  .shelf-badge.locked{opacity:.35;filter:grayscale(1);background:transparent;border-color:var(--border);box-shadow:none;}
+  #badge-shelf:hover .shelf-badge.locked{opacity:.55;}
   .shelf-badge.new{animation:badgePop .7s cubic-bezier(.3,1.6,.5,1);}
   @keyframes badgePop{0%{transform:scale(0) rotate(-30deg);}70%{transform:scale(1.25) rotate(8deg);}100%{transform:scale(1) rotate(0);}}
 
