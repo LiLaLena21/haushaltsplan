@@ -165,7 +165,8 @@
   .checkmark{display:none;color:var(--bg);font-size:12px;}
   .task.done .checkmark{display:block;}
   .task-label{font-size:1rem;line-height:1.2;flex:1;min-width:0;}
-  .badge{display:inline-flex;align-items:center;padding:.1rem .45rem;border-radius:3px;font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;font-weight:500;white-space:nowrap;flex-shrink:0;}
+  /* Zuständigkeits-Badges ausgeblendet – seit v1.2.1 wird beim Abhaken gefragt, wer's war */
+  .badge{display:none;}
   .badge.lena{background:var(--lena-soft);color:var(--lena);}
   .badge.pascal{background:var(--pascal-soft);color:var(--pascal);}
   .badge.wer{background:var(--wer-soft);color:var(--wer);}
@@ -457,12 +458,8 @@
     <button class="tab" onclick="showView('woechentlich',this)"><span>Wöchentlich</span><span class="tab-reset" id="tab-reset-woechentlich"></span></button>
     <button class="tab" onclick="showView('monatlich',this)"><span>Monatlich</span><span class="tab-reset" id="tab-reset-monatlich"></span></button>
     <div class="legend">
-      <div class="legend-item"><div class="dot lena"></div>Lena</div>
-      <div class="legend-item"><div class="dot pascal"></div>Pascal</div>
-      <div class="legend-item"><div class="dot wer"></div>Wer kann</div>
-      <div class="legend-item"><div class="dot gem"></div>Gemeinsam</div>
       <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">verbunden</span></div>
-      <button id="version-label" onclick="openWhatsNew()" title="Was ist neu?">v1.2.1</button>
+      <button id="version-label" onclick="openWhatsNew()" title="Was ist neu?">v1.2.2</button>
     </div>
   </div>
 
@@ -590,6 +587,6 @@
   </div>
 </div>
 
-<script src="app.js?v=11"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>

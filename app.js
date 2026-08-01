@@ -3,8 +3,11 @@
 // ════════════════════════════════════════
 
 // ── VERSION & CHANGELOG ──
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 const CHANGELOG = [
+  { v: '1.2.2', date: '01.08.2026', items: [
+    '🧽 Aufgeräumt: Zuständigkeits-Schildchen an den Aufgaben entfernt – wer\'s war, wird ja jetzt beim Abhaken gefragt',
+  ]},
   { v: '1.2.1', date: '01.08.2026', items: [
     '👥 Jede Aufgabe fragt jetzt beim Abhaken, wer sie gemacht hat – Lena, Pascal oder Gemeinsam (Punkte werden geteilt)',
   ]},
