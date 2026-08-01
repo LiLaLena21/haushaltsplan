@@ -3,8 +3,13 @@
 // ════════════════════════════════════════
 
 // ── VERSION & CHANGELOG ──
-const APP_VERSION = '1.1.3';
+const APP_VERSION = '1.2.0';
 const CHANGELOG = [
+  { v: '1.2.0', date: '25.07.2026', items: [
+    '🌙 Der Monats-Reset passiert jetzt automatisch am 1. – kein Knopfdrücken mehr',
+    '🏅 Abzeichen werden beim Monats-Reset mit zurückgesetzt – jeden Monat neue Jagd',
+    '🧹 Der Reset-Knopf bleibt als manuelles Backup (löscht jetzt auch Abzeichen)',
+  ]},
   { v: '1.1.3', date: '25.07.2026', items: [
     '🎫 „Was ist neu?"-Updates wie dieses hier',
   ]},
@@ -176,13 +181,37 @@ async function checkAutoReset() {
     // Erst Häkchen löschen (idempotent – doppelt löschen schadet nicht),
     // dann den Reset-Zeitstempel nur setzen, wenn er noch der alte ist.
     // So überschreiben sich zwei Geräte um Mitternacht nicht gegenseitig.
-    await clearViewTasksRemote(t.view);
+    if (t.field === 'last_monthly' && resets.last_monthly !== null) {
+      // Neuer Monat: kompletter Neustart – automatisch, kein Knopfdrücken nötig
+      await monthRollover();
+    } else {
+      await clearViewTasksRemote(t.view);
+    }
     let q = db.from('household_resets').update({ [t.field]: t.val }).eq('id', 1);
     q = resets[t.field] === null ? q.is(t.field, null) : q.eq(t.field, resets[t.field]);
     const { error } = await q;
     if (error) { console.error('checkAutoReset', error); continue; }
     resets[t.field] = t.val;
   }
+}
+
+// Kompletter Monats-Neustart: Häkchen, Punkte, Panda & Abzeichen
+async function monthRollover(silent) {
+  await Promise.all([
+    db.from('household_tasks').delete().neq('task_id', ''),
+    db.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1),
+    badgesAvailable ? db.from('household_badges').delete().neq('badge_id', '') : Promise.resolve({}),
+  ]);
+  scores = { lena: 0, pascal: 0 };
+  tasksCache = {};
+  earnedBadges = {};
+  goalShown = false;
+  document.querySelectorAll('.task.done').forEach(t => t.classList.remove('done'));
+  updateScoreboard();
+  renderBadgeShelf();
+  const av = document.querySelector('.view.active');
+  if (av) updateProgress(av.id);
+  if (!silent) showToast('🌙 Neuer Monat! Punkte, Panda & Abzeichen starten frisch – auf geht die Jagd! 🎋');
 }
 
 async function clearViewTasksRemote(viewName) {
@@ -708,29 +737,12 @@ function showView(name, btn) {
   updateProgress('view-' + name);
 }
 
-// ── MANUAL MONTH RESET ──
+// ── MANUAL MONTH RESET (Backup – passiert am 1. sonst automatisch) ──
 async function resetScores() {
-  if (!confirm('Monat zurücksetzen?\nAlle Bambus, Panda-Fortschritt und Häkchen werden gelöscht.')) return;
-
-  scores = { lena: 0, pascal: 0 };
-  tasksCache = {};
-  goalShown = false;
-  document.querySelectorAll('.task.done').forEach(t => t.classList.remove('done'));
-  updateScoreboard();
-  const av = document.querySelector('.view.active');
-  if (av) updateProgress(av.id);
-
+  if (!confirm('Monat zurücksetzen?\nBambus, Panda-Fortschritt, Häkchen und Abzeichen werden gelöscht.\n(Am 1. des Monats passiert das automatisch.)')) return;
   setSyncStatus(false);
-  const [r1, r2] = await Promise.all([
-    db.from('household_tasks').delete().neq('task_id', ''),
-    db.from('household_scores').update({ lena_points: 0, pascal_points: 0 }).eq('id', 1),
-  ]);
-  if (r1.error || r2.error) {
-    console.error('resetScores', r1.error || r2.error);
-    setSyncStatus(false, 'Fehler beim Zurücksetzen');
-    await loadScores(); await loadTasks(); restoreChecks(); updateScoreboard();
-    return;
-  }
+  await monthRollover(true);
+  showToast('🧹 Manuell zurückgesetzt – neuer Anlauf!');
   setSyncStatus(true);
 }
 
@@ -775,7 +787,13 @@ function subscribeRealtime() {
     });
   }
   if (badgesAvailable) {
-    ch = ch.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'household_badges' }, payload => {
+    ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: 'household_badges' }, payload => {
+      if (payload.eventType === 'DELETE') {
+        // Monats-Reset vom anderen Gerät: Abzeichen auch hier zurücksetzen
+        if (payload.old && payload.old.badge_id) delete earnedBadges[payload.old.badge_id];
+        renderBadgeShelf();
+        return;
+      }
       const r = payload.new;
       if (r && !earnedBadges[r.badge_id]) {
         earnedBadges[r.badge_id] = r;
