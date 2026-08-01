@@ -5,7 +5,7 @@
 // ── VERSION & CHANGELOG ──
 const APP_VERSION = '1.2.0';
 const CHANGELOG = [
-  { v: '1.2.0', date: '25.07.2026', items: [
+  { v: '1.2.0', date: '01.08.2026', items: [
     '🌙 Der Monats-Reset passiert jetzt automatisch am 1. – kein Knopfdrücken mehr',
     '🏅 Abzeichen werden beim Monats-Reset mit zurückgesetzt – jeden Monat neue Jagd',
     '🧹 Der Reset-Knopf bleibt als manuelles Backup (löscht jetzt auch Abzeichen)',
