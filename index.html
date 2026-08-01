@@ -187,6 +187,8 @@
   .mbtn.lena:hover{background:var(--lena);color:var(--bg);}
   .mbtn.pascal{background:var(--pascal-soft);color:var(--pascal);border-color:var(--pascal);}
   .mbtn.pascal:hover{background:var(--pascal);color:var(--bg);}
+  .mbtn.gem{background:var(--gem-soft);color:var(--gem);border-color:var(--gem);}
+  .mbtn.gem:hover{background:var(--gem);color:var(--bg);}
   .mbtn.cancel{background:transparent;color:var(--muted);border-color:var(--border);}
   .mbtn.cancel:hover{border-color:var(--ink);color:var(--ink);}
 
@@ -278,6 +280,7 @@
     <div class="modal-btns">
       <button class="mbtn lena" onclick="confirmWho('lena')">Lena</button>
       <button class="mbtn pascal" onclick="confirmWho('pascal')">Pascal</button>
+      <button class="mbtn gem" onclick="confirmWho('together')">Gemeinsam</button>
       <button class="mbtn cancel" onclick="cancelModal()">Abbrechen</button>
     </div>
   </div>
@@ -459,7 +462,7 @@
       <div class="legend-item"><div class="dot wer"></div>Wer kann</div>
       <div class="legend-item"><div class="dot gem"></div>Gemeinsam</div>
       <div class="sync-indicator"><div class="sync-dot" id="sync-dot"></div><span id="sync-text">verbunden</span></div>
-      <button id="version-label" onclick="openWhatsNew()" title="Was ist neu?">v1.2.0</button>
+      <button id="version-label" onclick="openWhatsNew()" title="Was ist neu?">v1.2.1</button>
     </div>
   </div>
 
@@ -587,6 +590,6 @@
   </div>
 </div>
 
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

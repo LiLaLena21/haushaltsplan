@@ -3,8 +3,11 @@
 // ════════════════════════════════════════
 
 // ── VERSION & CHANGELOG ──
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.2.1';
 const CHANGELOG = [
+  { v: '1.2.1', date: '01.08.2026', items: [
+    '👥 Jede Aufgabe fragt jetzt beim Abhaken, wer sie gemacht hat – Lena, Pascal oder Gemeinsam (Punkte werden geteilt)',
+  ]},
   { v: '1.2.0', date: '01.08.2026', items: [
     '🌙 Der Monats-Reset passiert jetzt automatisch am 1. – kein Knopfdrücken mehr',
     '🏅 Abzeichen werden beim Monats-Reset mit zurückgesetzt – jeden Monat neue Jagd',
@@ -255,14 +258,11 @@ let pendingEl = null;
 function toggle(el) {
   if (el.dataset.busy === '1') return; // Doppelklick-Schutz, solange gespeichert wird
   if (el.classList.contains('done')) { uncheck(el); return; }
-  const who = el.dataset.who;
-  if (who === 'together' || who === 'lena' || who === 'pascal') {
-    check(el, who);
-  } else {
-    pendingEl = el;
-    document.getElementById('modal-task').textContent = el.querySelector('.task-label').textContent.trim();
-    document.getElementById('modal').classList.add('visible');
-  }
+  // Immer fragen, wer's wirklich war – auch bei zugewiesenen Aufgaben
+  // (man springt ja auch mal füreinander ein!)
+  pendingEl = el;
+  document.getElementById('modal-task').textContent = el.querySelector('.task-label').textContent.trim();
+  document.getElementById('modal').classList.add('visible');
 }
 function confirmWho(who) {
   document.getElementById('modal').classList.remove('visible');
