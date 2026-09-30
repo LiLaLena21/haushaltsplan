@@ -341,6 +341,12 @@
   .quest.gold .s { color: var(--gold); }
   .quest.late { background-color: #3A1A14; border: none; box-shadow: none; }
   .quest.late .s { color: var(--warn); }
+  .bedarf { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; min-height: 58px; border-radius: 10px; border: 1px solid #3A2A20; background: var(--surface2); box-shadow: inset 0 0 0 1px rgba(201,164,92,.12); text-align: left; cursor: pointer; }
+  .bedarf:active { transform: translateY(2px); }
+  .bedarf .plus { width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; }
+  .bedarf .txt { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
+  .bedarf .t { font-family: 'Shippori Mincho', serif; font-weight: 800; font-size: 15px; }
+  .bedarf .s { font-size: 12px; color: var(--text-dim); }
   .done-row { background: rgba(26,20,17,.7); border: 1px dashed #3A2A20; border-radius: 8px; }
   .done-row .t { font-family: 'Shippori Mincho', serif; }
   .chest { border-radius: 6px; background: #2A1D14; border: 1px solid var(--gold); box-shadow: inset 0 0 0 2px #2A1D14, inset 0 0 0 3px rgba(201,164,92,.4); }
@@ -800,7 +806,8 @@ function isoWeek(d = new Date()) {
   const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
   return `${t.getUTCFullYear()}-W${pad(Math.ceil(((t - y0) / 86400000 + 1) / 7))}`;
 }
-const periodOf = (task, d = new Date()) => task.freq === 'daily' ? dayKey(d) : task.freq === 'weekly' ? isoWeek(d) : monthKey(d);
+// Zeitraum eines Stempels. Bedarfs- und Folge-Quests können beliebig oft gestempelt werden, daher die Uhrzeit.
+const periodOf = (task, d = new Date()) => task.freq === 'daily' ? dayKey(d) : task.freq === 'weekly' ? isoWeek(d) : task.freq === 'monthly' ? monthKey(d) : 'x' + d.toISOString();
 const DAYS = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 const NEED_LABEL = { satt: 'Satt', froh: 'Froh', sauber: 'Sauber' };
 const NEED_KANJI = { satt: '食', froh: '楽', sauber: '清' };
@@ -914,7 +921,20 @@ function subscribe() {
 
 // ── Rechnen ──────────────────────────────────────────────────────────────────
 const taskById = id => TASKS.find(t => t.id === id);
-const checkFor = (task, d = new Date()) => CHECKS.find(c => c.task_id === task.id && c.period === periodOf(task, d));
+const checksOf = id => CHECKS.filter(c => c.task_id === id);
+const lastCheck = id => checksOf(id).reduce((a, c) => (!a || c.checked_at > a.checked_at) ? c : a, null);
+function checkFor(task, d = new Date()) {
+  if (task.freq === 'asneeded') { const k = dayKey(d); return [...checksOf(task.id)].reverse().find(c => dayKey(new Date(c.checked_at)) === k) || null; }
+  if (task.freq === 'followup') { const f = followState(task); return f.open ? null : f.doneAfter; }
+  return CHECKS.find(c => c.task_id === task.id && c.period === periodOf(task, d));
+}
+// Folge-Quest ist offen, wenn die Vorgänger-Aufgabe nach dem letzten eigenen Stempel gestempelt wurde
+function followState(t) {
+  const parent = TASKS.find(p => p.follow_up === t.id);
+  const lp = parent && lastCheck(parent.id), lc = lastCheck(t.id);
+  const open = !!lp && (!lc || lc.checked_at < lp.checked_at);
+  return { open, since: lp && lp.checked_at, parent, doneAfter: !open && lc && lp && lc.checked_at >= lp.checked_at ? lc : null };
+}
 function sharesOf(c) { const n = (c.done_by || []).length || 1; return (c.done_by || []).map(u => [u, c.points / n]); }
 function pointsOf(uid, filter = () => true) { let s = 0; CHECKS.filter(filter).forEach(c => sharesOf(c).forEach(([u, p]) => { if (u === uid) s += p; })); return s; }
 const totalBamboo = () => CHECKS.reduce((a, c) => a + Number(c.points), 0);
@@ -953,20 +973,21 @@ function dueDay(t, now = new Date()) {
   return dayKey(d);
 }
 const counts = (t, now = new Date()) => t.freq === 'daily' || dueDay(t, now) >= HH.start;
-// Was heute ansteht: tägliche Aufgaben, fällige Wochen- und Monatsaufgaben (auch überfällige)
+// Tagesquests: tägliche Aufgaben und offene Folge-Quests (und heute erledigte Folge-Quests)
 function questsToday() {
-  const now = new Date(), wd = weekday(now), wom = weekOfMonth(now), today = dayKey(now);
-  const out = [];
+  const now = new Date(), today = dayKey(now), out = [];
   TASKS.forEach(t => {
-    const c = checkFor(t, now);
-    const doneToday = c && dayKey(new Date(c.checked_at)) === today;
-    if (t.freq === 'daily') out.push({ t, c, kind: 'daily' });
-    else if (!counts(t, now)) return;
-    else if (t.freq === 'weekly' && t.day && t.day <= wd && (!c || doneToday)) out.push({ t, c, kind: 'weekly', late: !c && t.day < wd });
-    else if (t.freq === 'monthly' && t.week && t.week <= wom && (!c || doneToday)) out.push({ t, c, kind: 'monthly', late: !c && t.week < wom });
+    if (t.freq === 'daily') out.push({ t, c: checkFor(t, now), kind: 'daily' });
+    else if (t.freq === 'followup') {
+      const f = followState(t);
+      if (f.open) out.push({ t, c: null, kind: 'followup', since: f.since, parent: f.parent });
+      else if (f.doneAfter && dayKey(new Date(f.doneAfter.checked_at)) === today) out.push({ t, c: f.doneAfter, kind: 'followup' });
+    }
   });
   return out;
 }
+const weekDone = t => !!checkFor(t);
+const countThisWeek = t => checksOf(t.id).filter(c => isoWeek(new Date(c.checked_at)) === isoWeek()).length;
 function dailyRatio(d) {
   const daily = TASKS.filter(t => t.freq === 'daily'); if (!daily.length) return 1;
   const k = dayKey(d); return daily.filter(t => CHECKS.some(c => c.task_id === t.id && c.period === k)).length / daily.length;
@@ -986,12 +1007,15 @@ function bestStreak() {
   }
   return best;
 }
-// Bedürfnisse: Anteil erledigter Aufgaben der jeweiligen Art, heute gemessen an der Tageszeit
+// Bedürfnisse: Anteil erledigter Aufgaben, gemessen daran, wie weit Tag, Woche und Monat schon sind.
+// Bedarfs-Quests geben einen Bonus, offene Folge-Quests (länger als 3 Stunden) ziehen etwas ab.
 function needs() {
   const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
   const dayPart = Math.max(0.25, Math.min(1, (h - 6) / 15));
   const y = new Date(now); y.setDate(y.getDate() - 1);
-  const wd = weekday(now), wom = weekOfMonth(now);
+  const weekPart = Math.max(0.2, (weekday(now) - 1 + dayPart) / 7);
+  const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const monthPart = Math.max(0.15, (now.getDate() - 1 + dayPart) / dim);
   const res = {};
   ['satt', 'froh', 'sauber'].forEach(n => {
     const ts = TASKS.filter(t => t.need === n); const parts = [];
@@ -1001,12 +1025,16 @@ function needs() {
       const vt = Math.min(1, doneT / (daily.length * dayPart)), vy = doneY / daily.length;
       parts.push([0.5, h < 10 ? 0.5 * vt + 0.5 * vy : 0.8 * vt + 0.2 * vy]);
     }
-    const weekly = ts.filter(t => t.freq === 'weekly' && t.day <= wd && counts(t, now));
-    if (weekly.length) parts.push([0.35, weekly.filter(t => checkFor(t, now)).length / weekly.length]);
-    const monthly = ts.filter(t => t.freq === 'monthly' && t.week <= wom && counts(t, now));
-    if (monthly.length) parts.push([0.15, monthly.filter(t => checkFor(t, now)).length / monthly.length]);
+    const weekly = ts.filter(t => t.freq === 'weekly');
+    if (weekly.length) parts.push([0.35, Math.min(1, weekly.filter(weekDone).length / (weekly.length * weekPart))]);
+    const monthly = ts.filter(t => t.freq === 'monthly');
+    if (monthly.length) parts.push([0.15, Math.min(1, monthly.filter(t => checkFor(t)).length / (monthly.length * monthPart))]);
     const w = parts.reduce((a, p) => a + p[0], 0);
-    res[n] = w ? Math.round(100 * parts.reduce((a, p) => a + p[0] * p[1], 0) / w) : 100;
+    let v = w ? 100 * parts.reduce((a, p) => a + p[0] * p[1], 0) / w : 100;
+    const bonus = ts.filter(t => t.freq === 'asneeded').reduce((a, t) => a + checksOf(t.id).filter(c => now - new Date(c.checked_at) < 24 * 3600e3).length, 0);
+    v += bonus * 10;
+    ts.filter(t => t.freq === 'followup').forEach(t => { const f = followState(t); if (f.open && now - new Date(f.since) > 3 * 3600e3) v -= 15; });
+    res[n] = Math.max(0, Math.min(100, Math.round(v)));
   });
   return res;
 }
@@ -1282,16 +1310,29 @@ function renderDuel() {
 }
 function questRow(q) {
   const t = q.t;
-  if (q.c) return `<button class="done-row" onclick="openUndo('${esc(t.id)}')">${stampsFor(q.c, 40, JUST === q.c.task_id + q.c.period)}<span class="t">${esc(t.title)}</span><span class="p">+${fmt(t.points)}</span></button>`;
+  if (q.c) return `<button class="done-row" onclick="openUndo('${esc(t.id)}','${q.c.id}')">${stampsFor(q.c, 40, JUST === q.c.task_id + q.c.period)}<span class="t">${esc(t.title)}</span><span class="p">+${fmt(t.points)}</span></button>`;
   const dw = t.default_who;
   const whoTxt = dw === 'any' ? 'wer mag' : dw === 'together' ? 'zusammen' : (member(dw) || {}).display_name || '';
   const whoDot = dw === 'together' ? `<i style="background:var(--together)"></i>` : member(dw) ? `<i style="background:${member(dw).color}"></i>` : '';
-  const special = (VIEW === 'heute' || VIEW === 'quests') && q.kind !== 'daily';
-  const sub = q.late ? (q.kind === 'weekly' ? `überfällig seit ${DAYS[t.day]}` : `überfällig aus Woche ${t.week}`)
-    : special ? (q.kind === 'weekly' ? 'Wochenquest · heute dran' : 'Monatsquest · diese Woche') : `${esc(t.section)} · <span class="who">${whoDot}${esc(whoTxt)}</span>`;
-  const cls = q.late ? ' late' : special ? ' gold' : '';
+  const whoHtml = `<span class="who">${whoDot}${esc(whoTxt)}</span>`;
+  const sub = q.kind === 'followup' ? `Folge-Quest · seit ${new Date(q.since).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}`
+    : `${esc(t.section)} · ${whoHtml}`;
+  const cls = q.kind === 'followup' ? ' gold' : '';
   const chip = `<span class="nd" style="background:${NEED_COLOR[t.need]}" title="${NEED_LABEL[t.need]}">${NEED_KANJI[t.need]}</span>`;
   return `<button class="quest${cls}" onclick="openCheck('${esc(t.id)}')"><span class="slot"><span>印</span></span><span class="txt"><span class="t">${esc(t.title)}</span><span class="s">${chip}${sub}</span></span><span class="reward">+${fmt(t.points)}<i>竹</i></span></button>`;
+}
+// Bedarfs-Quests als kleine Täfelchen, beliebig oft stempelbar
+function needRow(t) {
+  const n = countThisWeek(t), chip = `<span class="nd" style="background:${NEED_COLOR[t.need]}">${NEED_KANJI[t.need]}</span>`;
+  return `<button class="bedarf" onclick="openCheck('${esc(t.id)}')"><span class="plus">+</span><span class="txt"><span class="t">${esc(t.title)}</span><span class="s">${chip}${n ? `diese Woche ${n}×` : 'diese Woche noch nicht'}${t.follow_up ? ' · danach ' + esc((taskById(t.follow_up) || {}).title || '') : ''}</span></span><span class="reward">+${fmt(t.points)}<i>竹</i></span></button>`;
+}
+function periodList(freq, title, kanji, limitOpen) {
+  const ts = TASKS.filter(t => t.freq === freq);
+  const open = ts.filter(t => !checkFor(t)), done = ts.filter(t => checkFor(t));
+  return `<div class="sec-head" style="margin-top:14px"><h2><span class="hk">${kanji}</span>${title}</h2><div class="meta">${done.length} / ${ts.length}</div></div>
+    ${open.length ? `<div class="quest-cols">${open.slice(0, limitOpen || 99).map(t => questRow({ t, c: null, kind: freq })).join('')}</div>` : `<div class="panel all-done"><b>Alles erledigt!</b></div>`}
+    ${limitOpen && open.length > limitOpen ? `<button class="btn ghost" style="margin-top:4px" onclick="show('${freq === 'weekly' ? 'woche' : 'monat'}')">Alle ${open.length} offenen anzeigen</button>` : ''}
+    ${!limitOpen && done.length ? `<div class="quest-cols" style="margin-top:8px">${done.map(t => questRow({ t, c: checkFor(t), kind: freq })).join('')}</div>` : ''}`;
 }
 let JUST = null;
 function chestState(quests) {
@@ -1302,26 +1343,22 @@ function chestState(quests) {
 function renderView(quests) {
   const m = $('main');
   if (VIEW === 'heute' || VIEW === 'quests') {
-    const open = quests.filter(q => !q.c).sort((a, b) => (b.late - a.late) || ((b.kind !== 'daily') - (a.kind !== 'daily')) || a.t.sort - b.t.sort);
+    const open = quests.filter(q => !q.c).sort((a, b) => ((b.kind === 'followup') - (a.kind === 'followup')) || a.t.sort - b.t.sort);
     const done = quests.filter(q => q.c).sort((a, b) => new Date(b.c.checked_at) - new Date(a.c.checked_at));
     const ch = chestState(quests);
+    const bedarf = TASKS.filter(t => t.freq === 'asneeded');
     m.innerHTML = `
       <div class="sec-head"><h2><span class="hk">今日</span>Tagesquests</h2><div class="meta">${ch.done} / ${ch.total}
         <button class="chest${ch.ready ? ' ready' : ''}${ch.opened ? ' open' : ''}" ${ch.ready ? 'onclick="openChest()" aria-label="Truhe öffnen"' : 'tabindex="-1" aria-hidden="true"'}><svg width="16" height="14" viewBox="0 0 24 20" fill="none" stroke="#D4A853" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M2 8h20v10H2zM2 8c0-4 3-6 10-6s10 2 10 6M12 8v4"></path></svg></button></div></div>
       <div class="segs" style="grid-template-columns:repeat(${Math.max(1, ch.total)},minmax(0,1fr))">${quests.map((q, i) => `<i class="${i < ch.done ? 'on' : ''}"></i>`).join('')}</div>
       ${open.length ? `<div class="quest-cols">${open.map(questRow).join('')}</div>`
-        : `<div class="panel all-done"><b>${ch.opened ? 'Truhe geöffnet!' : 'Alle Quests geschafft!'}</b><span>${ch.opened ? 'Morgen gibt es neue Quests.' : 'Tippt auf die goldene Truhe für euren Bonus.'}</span></div>`}
-      ${done.length ? `<div class="sec-head" style="margin-top:14px"><h2 style="font-size:16px;color:var(--text-dim)">Erledigt</h2></div><div class="quest-cols">${done.map(questRow).join('')}</div>` : ''}`;
+        : `<div class="panel all-done"><b>${ch.opened ? 'Truhe geöffnet!' : 'Alle Tagesquests geschafft!'}</b><span>${ch.opened ? 'Morgen gibt es neue Quests.' : 'Tippt auf die goldene Truhe für euren Bonus.'}</span></div>`}
+      ${done.length ? `<div class="quest-cols" style="margin-top:8px">${done.map(questRow).join('')}</div>` : ''}
+      ${bedarf.length ? `<div class="sec-head" style="margin-top:14px"><h2><span class="hk">要</span>Nach Bedarf</h2><div class="meta">wann immer nötig</div></div><div class="quest-cols">${bedarf.map(needRow).join('')}</div>` : ''}
+      ${periodList('weekly', 'Diese Woche', '週', 4)}
+      ${periodList('monthly', 'Diesen Monat', '月', 3)}`;
   } else if (VIEW === 'woche') {
-    const wd = weekday();
-    let html = `<div class="sec-head"><h2><span class="hk">週</span>Diese Woche</h2><div class="meta">${TASKS.filter(t => t.freq === 'weekly' && checkFor(t)).length} / ${TASKS.filter(t => t.freq === 'weekly').length}</div></div>`;
-    for (let d = 1; d <= 7; d++) {
-      const ts = TASKS.filter(t => t.freq === 'weekly' && t.day === d); if (!ts.length) continue;
-      html += `<div class="day-label${d < wd ? ' past' : ''}"><b>${DAYS[d]}</b>${d === wd ? '<span>HEUTE</span>' : ''}</div><div class="quest-cols">`;
-      html += ts.map(t => questRow({ t, c: checkFor(t), kind: 'weekly', late: !checkFor(t) && d < wd && counts(t) })).join('');
-      html += `</div>`;
-    }
-    m.innerHTML = html;
+    m.innerHTML = periodList('weekly', 'Diese Woche', '週').replace('margin-top:14px', 'margin-top:0');
   } else if (VIEW === 'monat') {
     const wom = weekOfMonth(), mk = monthKey();
     const monthPts = CHECKS.filter(inMonth).reduce((s, c) => s + Number(c.points), 0);
@@ -1330,13 +1367,7 @@ function renderView(quests) {
       <label class="field">Ziel in Bambus (gemeinsam)<input id="goalTarget" type="number" inputmode="numeric" min="10" max="2000" value="${GOAL ? GOAL.target : 300}"></label>
       <div style="font-size:13px;color:var(--text-dim)">Bisher diesen Monat: <b style="color:var(--gold)">${fmt(monthPts)} Bambus</b>. Wenn ihr jeden Tag alle Quests schafft, kommt ihr auf etwa ${Math.round(expectedMonth())}.</div>
       <button class="btn" onclick="saveGoal()">Speichern</button></section>`;
-    html += `<div class="sec-head" style="margin-top:8px"><h2><span class="hk">月</span>Monatsquests</h2><div class="meta">${TASKS.filter(t => t.freq === 'monthly' && checkFor(t)).length} / ${TASKS.filter(t => t.freq === 'monthly').length}</div></div>`;
-    for (let w = 1; w <= 4; w++) {
-      const ts = TASKS.filter(t => t.freq === 'monthly' && t.week === w); if (!ts.length) continue;
-      html += `<div class="day-label${w < wom ? ' past' : ''}"><b>Woche ${w}</b>${w === wom ? '<span>JETZT</span>' : ''}</div><div class="quest-cols">`;
-      html += ts.map(t => questRow({ t, c: checkFor(t), kind: 'monthly', late: !checkFor(t) && w < wom && counts(t) })).join('');
-      html += `</div>`;
-    }
+    html += periodList('monthly', 'Monatsquests', '月');
     m.innerHTML = html;
   } else if (VIEW === 'erfolge') {
     const ml = mochiLevel(), bs = badges();
@@ -1351,7 +1382,7 @@ function renderView(quests) {
 function expectedMonth() {
   const days = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
   const sum = f => TASKS.filter(t => t.freq === f).reduce((a, t) => a + Number(t.points), 0);
-  return sum('daily') * days + sum('weekly') * days / 7 + sum('monthly');
+  return sum('daily') * days + sum('weekly') * days / 7 + sum('monthly') + (sum('asneeded') + sum('followup')) * 2 * days / 7;
 }
 function show(v) {
   if (v === 'quests' && matchMedia('(min-width: 900px)').matches) v = 'heute';
@@ -1472,15 +1503,15 @@ async function doCheck() {
 function openNeed(n) {
   const nd = needs(), now = new Date();
   const ts = TASKS.filter(t => t.need === n);
-  const row = t => { const c = checkFor(t, now); return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A211B"><span style="width:22px;text-align:center;color:${c ? 'var(--matcha)' : '#5A4A3E'};font-weight:900">${c ? '✓' : '○'}</span><span style="flex-grow:1;${c ? 'color:var(--text-faint);text-decoration:line-through' : ''}">${esc(t.title)}</span><span style="font-size:12px;color:var(--text-dim)">${t.freq === 'weekly' ? DAYS[t.day].slice(0, 2) : t.freq === 'monthly' ? 'Wo ' + t.week : 'tägl.'}</span></div>`; };
+  const row = t => { const c = checkFor(t, now); return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A211B"><span style="width:22px;text-align:center;color:${c ? 'var(--matcha)' : '#5A4A3E'};font-weight:900">${c ? '✓' : '○'}</span><span style="flex-grow:1;${c ? 'color:var(--text-faint);text-decoration:line-through' : ''}">${esc(t.title)}</span><span style="font-size:12px;color:var(--text-dim)">${({ daily: 'täglich', weekly: 'Woche', monthly: 'Monat', asneeded: 'Bedarf', followup: 'danach' })[t.freq]}</span></div>`; };
   const grp = (f, title) => { const g = ts.filter(t => t.freq === f); return g.length ? `<div style="font-size:11px;letter-spacing:.12em;color:var(--gold);margin-top:8px">${title}</div>${g.map(row).join('')}` : ''; };
   openSheet(`<div><div class="kicker">MOCHIS BEDÜRFNIS</div><h2><span class="hk" style="background:${NEED_COLOR[n]};box-shadow:none;color:#1A1411">${NEED_KANJI[n]}</span>${NEED_LABEL[n]}: ${nd[n]} %</h2></div>
     <p style="margin:0;color:var(--text-dim);font-size:14px;line-height:1.55">So ${NEED_LABEL[n].toLowerCase()} ist Mochi gerade. 100 % heißt: alles, was bis jetzt dran war, ist erledigt. Tagsüber sinkt der Wert langsam, wenn die täglichen Quests offen bleiben. ${NEED_TEXT[n]}</p>
-    <div>${grp('daily', 'TÄGLICH')}${grp('weekly', 'DIESE WOCHE')}${grp('monthly', 'DIESEN MONAT')}</div>
+    <div>${grp('daily', 'TÄGLICH')}${grp('asneeded', 'NACH BEDARF')}${grp('followup', 'FOLGE-QUESTS')}${grp('weekly', 'DIESE WOCHE')}${grp('monthly', 'DIESEN MONAT')}</div>
     <button class="btn ghost" onclick="closeSheet()">Alles klar</button>`);
 }
-function openUndo(id) {
-  const t = taskById(id), c = t && checkFor(t); if (!c) return;
+function openUndo(id, cid) {
+  const t = taskById(id), c = t && (cid ? CHECKS.find(x => String(x.id) === String(cid)) : checkFor(t)); if (!c) return;
   const who = (c.done_by || []).map(u => (member(u) || {}).display_name).join(' & ');
   const at = new Date(c.checked_at);
   openSheet(`<div><div class="kicker">ERLEDIGT · ${esc(who.toUpperCase())}</div><h2>${esc(t.title)}</h2></div>
