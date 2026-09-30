@@ -118,7 +118,8 @@
   .mochi-name b { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 800; }
   .mochi-name span { font-size: 12px; color: var(--text-dim); text-align: right; }
   .needs { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; background: rgba(20,18,15,.62); border: 2px solid rgba(58,50,42,.8); border-radius: 18px; padding: 6px 4px 5px; backdrop-filter: blur(3px); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='12' viewBox='0 0 24 12'%3E%3Cg fill='none' stroke='%23D4A853' stroke-opacity='.10' stroke-width='1'%3E%3Cpath d='M0 12a12 12 0 0 1 24 0M4 12a8 8 0 0 1 16 0M8 12a4 4 0 0 1 8 0M-12 6a12 12 0 0 1 24 0M12 6a12 12 0 0 1 24 0'/%3E%3C/g%3E%3C/svg%3E"); }
-  .ring { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700; }
+  .ring { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700; background: none; border: none; padding: 0; cursor: pointer; color: var(--text); }
+  .nd { display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: 4px; font-family: 'Shippori Mincho', serif; font-size: 11px; font-weight: 800; color: #1A1411; margin-right: 5px; vertical-align: 1px; }
   .ring svg circle.v { transition: stroke-dasharray .6s cubic-bezier(.2,.8,.2,1); }
   .ring.low { color: var(--warn); }
   .need { display: flex; flex-direction: column; gap: 4px; }
@@ -162,8 +163,12 @@
   .mist { animation: mist 14s ease-in-out infinite; }
   .fly { animation: fly 7s ease-in-out infinite; }
   .pupil { animation: look 9s ease-in-out infinite; }
-  #mHead { transform-box: fill-box; transform-origin: 50% 90%; animation: tilt 11s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz, .tw, .sway, .flicker, .shimmer, .mist, .fly, .pupil, #mHead { animation: none !important; } .mochi-wrap.jump { animation: none; } }
+  #mHead { }
+  @keyframes nibble { 0%, 60%, 100% { transform: translate(0,0) rotate(0); } 66% { transform: translate(-2px,2px) rotate(-3deg); } 72% { transform: translate(0,0); } 78% { transform: translate(-2px,2px) rotate(-3deg); } 84% { transform: translate(0,0); } }
+  @keyframes chew { 0%, 60%, 100% { transform: scaleY(1); } 66%, 78% { transform: scaleY(.45); } 72%, 84% { transform: scaleY(1); } }
+  .nibble { transform-box: view-box; animation: nibble 5s ease-in-out infinite; }
+  .chew { transform-box: fill-box; transform-origin: center; animation: chew 5s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz, .tw, .sway, .flicker, .shimmer, .mist, .fly, .pupil, .nibble, .chew { animation: none !important; } .mochi-wrap.jump { animation: none; } }
 
   /* Duell & Monatsziel */
   .duel { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
@@ -799,6 +804,8 @@ const periodOf = (task, d = new Date()) => task.freq === 'daily' ? dayKey(d) : t
 const DAYS = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 const NEED_LABEL = { satt: 'Satt', froh: 'Froh', sauber: 'Sauber' };
 const NEED_KANJI = { satt: '食', froh: '楽', sauber: '清' };
+const NEED_COLOR = { satt: '#D9A441', froh: '#E58A9A', sauber: '#7FB6CF' };
+const NEED_TEXT = { satt: 'Küche und Einkaufen machen Mochi satt.', froh: 'Katzen, Wohnung und Büros machen Mochi froh.', sauber: 'Bad, Wäsche und Katzenklo machen Mochi sauber.' };
 const NEED_ICON = {
   satt: '<path d="M2 11h20c0 5-4.5 9-10 9S2 16 2 11z"/><path d="M8 11c0-2 1.5-3 4-3s4 1 4 3M15 3l-3 5M19 4l-4 4"/>',
   froh: '<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>',
@@ -1101,7 +1108,7 @@ function sceneBg(lvl) {
   if (hasUnlock('kissen', lvl)) h += `<ellipse cx="150" cy="334" rx="58" ry="8" fill="#7A3B4A" opacity=".85"/>`;
   if (hasUnlock('tee', lvl)) h += `<g transform="translate(96 322)"><path d="M0 4h20c0 7-4 11-10 11S0 11 0 4z" fill="#3E5A44" stroke="#D4C9B0" stroke-width="1.5"/><ellipse cx="10" cy="4" rx="10" ry="2.5" fill="#9DBB82"/></g>`;
   if (hasUnlock('bonsai', lvl)) h += `<g transform="translate(250 290)"><rect x="4" y="30" width="26" height="10" rx="2" fill="#5C3A2E"/><path d="M17 30c0-8-6-10-4-18" stroke="#6B4A33" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="10" cy="12" r="9" fill="#3E6B45"/><circle cx="24" cy="8" r="8" fill="#4E7B52"/></g>`;
-  if (hasUnlock('laterne', lvl)) h += `<g transform="translate(196 250)"><path d="M10 0v8" stroke="#6E655C" stroke-width="2"/><rect x="0" y="8" width="20" height="30" rx="9" fill="${dark ? '#E8834A' : '#B5543A'}" stroke="#2B2622" stroke-width="2"/><path d="M0 18h20M0 28h20" stroke="#2B2622" stroke-width="1.2" opacity=".6"/>${dark ? '<circle cx="10" cy="23" r="24" fill="#E8834A" opacity=".13" class="flicker"/>' : ''}</g>`;
+  if (hasUnlock('laterne', lvl)) h += `<g transform="translate(262 150)"><path d="M0-14v14" stroke="#3A2A22" stroke-width="1.2"/><rect x="-9" y="0" width="18" height="24" rx="8.5" fill="${dark ? '#D9573F' : '#A8452F'}" class="${dark ? 'flicker' : ''}"/><path d="M-9 8h18M-9 16h18" stroke="#2A1612" stroke-width=".8" opacity=".5"/><rect x="-5" y="-1" width="10" height="2.5" fill="#2A1612"/><rect x="-5" y="22.5" width="10" height="2.5" fill="#2A1612"/><text x="0" y="16" text-anchor="middle" font-size="9" font-family="Shippori Mincho, serif" font-weight="800" fill="#2A1612" opacity=".75">灯</text>${dark ? '<circle cx="0" cy="12" r="20" fill="#F4A45A" opacity=".13"/>' : ''}</g>`;
   $('sceneBg').innerHTML = h;
 }
 // Mochi wächst: als Baby großer Kopf, kleiner Körper, große glänzende Augen; später schlanker und größer
@@ -1114,51 +1121,59 @@ const BUILD = [
 ];
 function mochiSVG(mood, lvl) {
   const st = Math.max(0, STAGES.indexOf(stageOf(lvl))), B = BUILD[st];
-  const [hx, hy] = B.head, [bx, by] = B.body;
-  const bcy = 176 - by, hcy = bcy - by - hy * 0.3;           // Körper steht auf dem Boden, Kopf sitzt oben drauf
-  const ex = hx * 0.38, ey = hcy + 3;                         // Augenposition
-  const L = 75 - ex, R = 75 + ex;
-  const e = B.eye;
+  const [hx, hy] = B.head, [bx, by] = B.body, [ax, ay] = B.arm, [lx, ly] = B.leg;
+  // Sitzt wie ein echter Panda: Beine nach vorn, Fußsohlen zu uns, eine Pfote hält den Bambus zum Mund
+  const bb = 172, bcx = 80, bcy = bb - by;
+  const hcx = bcx - 6, hcy = bcy - by * 0.78 - hy * 0.62;
+  const ex = hx * 0.38, ey = hcy + 3, L = hcx - ex, R = hcx + ex, e = B.eye;
   const eyes = mood === 'sleep'
     ? `<path d="M${L - 6} ${ey}q6 4 12 0M${R - 6} ${ey}q6 4 12 0" stroke="#F3EDE2" stroke-width="3" fill="none" stroke-linecap="round"/>`
     : mood === 'happy'
       ? `<path d="M${L - 6} ${ey + 1}q6-7 12 0M${R - 6} ${ey + 1}q6-7 12 0" stroke="#F3EDE2" stroke-width="3.2" fill="none" stroke-linecap="round"/>`
       : [L, R].map(x => `<g class="eye"><circle cx="${x}" cy="${ey}" r="${e}" fill="#F3EDE2"/><circle class="pupil" cx="${x + 1}" cy="${ey}" r="${e * .5}" fill="#0B0A08"/><circle cx="${x - e * .3}" cy="${ey - e * .35}" r="${e * .25}" fill="#fff"/>${st === 0 ? `<circle cx="${x + e * .35}" cy="${ey + e * .3}" r="${e * .12}" fill="#fff"/>` : ''}</g>`).join('');
   const my = hcy + hy * 0.5;
-  const mouth = mood === 'sad' ? `<path d="M${75 - 7} ${my + 4}q7-6 14 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
-    : st === 0 ? `<path d="M${75 - 5} ${my}q2.5 4 5 0q2.5 4 5 0" stroke="#0B0A08" stroke-width="2.2" fill="none" stroke-linecap="round"/>`
-    : `<path d="M${75 - 8} ${my}q8 8 16 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+  const eating = mood !== 'sleep' && mood !== 'sad';
+  const mouth = mood === 'sad' ? `<path d="M${hcx - 7} ${my + 4}q7-6 14 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
+    : eating ? `<ellipse class="chew" cx="${hcx + 2}" cy="${my + 1}" rx="${st === 0 ? 3.5 : 4.5}" ry="${st === 0 ? 3 : 3.8}" fill="#5A2420"/>`
+    : `<path d="M${hcx - 6} ${my}q6 6 12 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
   const brows = mood === 'sad' ? `<path d="M${L - 9} ${ey - 12}l12 -4M${R + 9} ${ey - 12}l-12 -4" stroke="#0B0A08" stroke-width="2.5" stroke-linecap="round"/>`
     : B.wise ? `<path d="M${L - 10} ${ey - 16}q10-6 18 0M${R + 10} ${ey - 16}q-10-6-18 0" stroke="#F3EDE2" stroke-width="3" fill="none" stroke-linecap="round"/>` : '';
   const earY = hcy - hy * 0.78, earX = hx * 0.72;
-  const tuft = st === 0 ? `<path d="M72 ${hcy - hy + 2}c-2-7 4-10 7-6-5 0-5 4-2 6" stroke="#0B0A08" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : '';
-  const hat = hasUnlock('hut', lvl) ? `<g transform="translate(0 ${hcy - 70})"><path d="M22 36L75-2l53 38c-30 8-76 8-106 0z" fill="#C9A45C" stroke="#7A5F28" stroke-width="2.5"/><path d="M40 30c20 4 50 4 70 0" stroke="#7A5F28" stroke-width="1.5" fill="none"/></g>` : '';
-  const dust = mood === 'dusty' ? `<g fill="#8E8375" opacity=".55"><circle cx="${75 - bx * .5}" cy="${bcy + 6}" r="4"/><circle cx="${75 + bx * .4}" cy="${bcy + 16}" r="3"/><circle cx="80" cy="${bcy - 8}" r="2.5"/><circle cx="${R + 8}" cy="${hcy - 20}" r="3"/></g>` : '';
-  const [ax, ay] = B.arm, [lx, ly] = B.leg;
-  const bamboo = B.sprig
-    ? `<path d="M${75 + bx + 4} ${176}C${75 + bx + 5} ${160} ${75 + bx + 6} ${150} ${75 + bx + 8} ${138}" stroke="#6F8F55" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M${75 + bx + 8} ${142}c8-8 17-8 23-4-8 4-16 5-23 4z" fill="#7E9A62"/>`
-    : `<path d="M132 178C134 142 138 106 140 72" stroke="#6F8F55" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M131 148h12M134 110h11" stroke="#4E6B3C" stroke-width="2.5" stroke-linecap="round"/><path d="M140 78c14-12 28-12 38-6-14 6-26 8-38 6z" fill="#7E9A62"/>`;
+  const tuft = st === 0 ? `<path d="M${hcx - 3} ${hcy - hy + 2}c-2-7 4-10 7-6-5 0-5 4-2 6" stroke="#0B0A08" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : '';
+  const hat = hasUnlock('hut', lvl) ? `<g transform="translate(${hcx - 75} ${hcy - 70})"><path d="M22 36L75-2l53 38c-30 8-76 8-106 0z" fill="#C9A45C" stroke="#7A5F28" stroke-width="2.5"/><path d="M40 30c20 4 50 4 70 0" stroke="#7A5F28" stroke-width="1.5" fill="none"/></g>` : '';
+  const dust = mood === 'dusty' ? `<g fill="#8E8375" opacity=".55"><circle cx="${bcx - bx * .4}" cy="${bcy + 8}" r="4"/><circle cx="${bcx + bx * .2}" cy="${bcy + 18}" r="3"/><circle cx="${bcx}" cy="${bcy - 4}" r="2.5"/><circle cx="${R + 8}" cy="${hcy - 18}" r="3"/></g>` : '';
+  // Füße mit Ballen
+  const foot = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><ellipse rx="${lx * 1.05}" ry="${ly * 1.25}" fill="#0B0A08"/><ellipse cy="${ly * .25}" rx="${lx * .5}" ry="${ly * .55}" fill="#3E362F"/>${[-.45, 0, .45].map(k => `<circle cx="${lx * k}" cy="${-ly * .55}" r="${lx * .16}" fill="#3E362F"/>`).join('')}</g>`;
+  // Bambus in der rechten Pfote, oben am Mund
+  const bx0 = hcx + hx * 0.28, by0 = my + 6;                    // Mundhöhe
+  const len = B.sprig ? 34 : 70;
+  const bamboo = mood === 'sleep'
+    ? `<g><path d="M${bcx + bx * .95} ${bb + 4}l${B.sprig ? 26 : 48} -6" stroke="#6F8F55" stroke-width="${B.sprig ? 4 : 6}" stroke-linecap="round"/></g>`
+    : `<g class="${eating ? 'nibble' : ''}"><path d="M${bx0 + 2} ${by0 + 4}L${bx0 + len * .55} ${by0 - len * .85}" stroke="#6F8F55" stroke-width="${B.sprig ? 4.5 : 6.5}" stroke-linecap="round"/>
+      <path d="M${bx0 + len * .25} ${by0 - len * .38}l6 2" stroke="#4E6B3C" stroke-width="2" stroke-linecap="round"/>
+      <path d="M${bx0 + len * .55} ${by0 - len * .85}c10-8 20-8 26-3-9 4-18 5-26 3z" fill="#7E9A62"/>
+      <path d="M${bx0 + len * .5} ${by0 - len * .75}c-10-6-18-4-22 2 8 2 15 1 22-2z" fill="#6F8F55"/></g>`;
   return `<svg viewBox="-10 -20 170 220" aria-hidden="true">
-    <ellipse cx="75" cy="182" rx="${bx + 10}" ry="8" fill="#0F1512" opacity=".8"/>
+    <ellipse cx="${bcx}" cy="182" rx="${bx + 22}" ry="8" fill="#0F1512" opacity=".8"/>
     <g id="mBody">
-      <ellipse cx="75" cy="${bcy}" rx="${bx}" ry="${by}" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
-      <ellipse cx="${75 - bx * .55}" cy="${176 - ly * .6}" rx="${lx}" ry="${ly}" fill="#0B0A08"/><ellipse cx="${75 + bx * .55}" cy="${176 - ly * .6}" rx="${lx}" ry="${ly}" fill="#0B0A08"/>
-      <ellipse cx="${75 - bx * .82}" cy="${bcy - by * .15}" rx="${ax}" ry="${ay}" fill="#0B0A08" transform="rotate(-22 ${75 - bx * .82} ${bcy - by * .15})"/>
-      ${bamboo}
-      <ellipse cx="${75 + bx * .82}" cy="${bcy - by * .15}" rx="${ax}" ry="${ay}" fill="#0B0A08" transform="rotate(28 ${75 + bx * .82} ${bcy - by * .15})"/>
+      <ellipse cx="${bcx}" cy="${bcy}" rx="${bx}" ry="${by}" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
       ${dust}
-      <g id="mHead">
-      <circle id="earL" cx="${75 - earX}" cy="${earY}" r="${B.ear}" fill="#0B0A08" stroke="#3A332B" stroke-width="1.5"/>
-      <circle id="earR" cx="${75 + earX}" cy="${earY}" r="${B.ear}" fill="#0B0A08" stroke="#3A332B" stroke-width="1.5"/>
-      <ellipse cx="75" cy="${hcy}" rx="${hx}" ry="${hy}" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
+      ${foot(bcx - bx * .55, bb + 2, .95)}${foot(bcx + bx * .5, bb + 4, 1.05)}
+      <ellipse cx="${bcx - bx * .6}" cy="${bcy + by * .12}" rx="${ax}" ry="${ay}" fill="#0B0A08" transform="rotate(-35 ${bcx - bx * .6} ${bcy + by * .12})"/>
+      <g id="mHead" transform="rotate(-7 ${hcx} ${hcy + hy})">
+      <circle id="earL" cx="${hcx - earX}" cy="${earY}" r="${B.ear}" fill="#0B0A08" stroke="#3A332B" stroke-width="1.5"/>
+      <circle id="earR" cx="${hcx + earX}" cy="${earY}" r="${B.ear}" fill="#0B0A08" stroke="#3A332B" stroke-width="1.5"/>
+      <ellipse cx="${hcx}" cy="${hcy}" rx="${hx}" ry="${hy}" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
       ${tuft}
       <ellipse cx="${L - 1}" cy="${ey + 1}" rx="${e + 7}" ry="${e + 11}" fill="#0B0A08" transform="rotate(28 ${L - 1} ${ey + 1})"/>
       <ellipse cx="${R + 1}" cy="${ey + 1}" rx="${e + 7}" ry="${e + 11}" fill="#0B0A08" transform="rotate(-28 ${R + 1} ${ey + 1})"/>
       ${eyes}${brows}
-      <ellipse cx="75" cy="${my - 8}" rx="${st === 0 ? 5 : 6.5}" ry="${st === 0 ? 3.6 : 4.5}" fill="#0B0A08"/>
+      <ellipse cx="${hcx}" cy="${my - 8}" rx="${st === 0 ? 5 : 6.5}" ry="${st === 0 ? 3.6 : 4.5}" fill="#0B0A08"/>
       ${mouth}
       <ellipse cx="${L - 12}" cy="${my - 4}" rx="${st === 0 ? 10 : 8}" ry="${st === 0 ? 5.5 : 4.5}" fill="#E7A79B" opacity="${st === 0 ? .7 : .55}"/><ellipse cx="${R + 12}" cy="${my - 4}" rx="${st === 0 ? 10 : 8}" ry="${st === 0 ? 5.5 : 4.5}" fill="#E7A79B" opacity="${st === 0 ? .7 : .55}"/>
       ${hat}</g>
+      ${bamboo}
+      ${mood === 'sleep' ? '' : `<ellipse cx="${hcx + hx * .5}" cy="${my + 9}" rx="${ax * .95}" ry="${ay * .85}" fill="#0B0A08" transform="rotate(-50 ${hcx + hx * .5} ${my + 9})"/>`}
     </g></svg>`;
 }
 let MOOD_OVERRIDE = null, moodTimer = null;
@@ -1244,8 +1259,8 @@ function renderAll() {
   $('mochiStage').textContent = `${stageOf(ml.lvl).name} · noch ${fmt(ml.need - ml.into)} bis Lv ${ml.lvl + 1}`;
   $('mochiBar').style.width = (100 * ml.into / ml.need) + '%';
   if (!bubbleTimer) $('bubble').textContent = bubbleText(nd, quests);
-  $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#E86A4E' : '#A3BC72', L = 2 * Math.PI * 22;
-    return `<div class="ring${low ? ' low' : ''}"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><g transform="translate(15 15)" fill="none" stroke="${low ? '#E86A4E' : '#EFE7DA'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NEED_ICON[n]}</g></svg><span><span class="kj">${NEED_KANJI[n]}</span>${NEED_LABEL[n]} <b style="font-weight:900">${nd[n]}</b></span></div>`; }).join('');
+  $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#E86A4E' : NEED_COLOR[n], L = 2 * Math.PI * 22;
+    return `<button class="ring${low ? ' low' : ''}" onclick="event.stopPropagation();openNeed('${n}')" aria-label="${NEED_LABEL[n]} ${nd[n]} Prozent"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><g transform="translate(15 15)" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NEED_ICON[n]}</g></svg><span><span class="kj" style="color:${NEED_COLOR[n]}">${NEED_KANJI[n]}</span>${NEED_LABEL[n]} <b style="font-weight:900">${nd[n]} %</b></span></button>`; }).join('');
   renderDuel();
   const openN = quests.filter(q => !q.c).length; $('questBadge').textContent = openN || '';
   renderView(quests);
@@ -1275,7 +1290,8 @@ function questRow(q) {
   const sub = q.late ? (q.kind === 'weekly' ? `überfällig seit ${DAYS[t.day]}` : `überfällig aus Woche ${t.week}`)
     : special ? (q.kind === 'weekly' ? 'Wochenquest · heute dran' : 'Monatsquest · diese Woche') : `${esc(t.section)} · <span class="who">${whoDot}${esc(whoTxt)}</span>`;
   const cls = q.late ? ' late' : special ? ' gold' : '';
-  return `<button class="quest${cls}" onclick="openCheck('${esc(t.id)}')"><span class="slot"><span>印</span></span><span class="txt"><span class="t">${esc(t.title)}</span><span class="s">${sub}</span></span><span class="reward">+${fmt(t.points)}<i>竹</i></span></button>`;
+  const chip = `<span class="nd" style="background:${NEED_COLOR[t.need]}" title="${NEED_LABEL[t.need]}">${NEED_KANJI[t.need]}</span>`;
+  return `<button class="quest${cls}" onclick="openCheck('${esc(t.id)}')"><span class="slot"><span>印</span></span><span class="txt"><span class="t">${esc(t.title)}</span><span class="s">${chip}${sub}</span></span><span class="reward">+${fmt(t.points)}<i>竹</i></span></button>`;
 }
 let JUST = null;
 function chestState(quests) {
@@ -1452,6 +1468,16 @@ async function doCheck() {
   } else CHECKS = CHECKS.map(c => c === temp ? data : c);
   renderAll(); setTimeout(() => { JUST = null; }, 900);
   checkMilestones();
+}
+function openNeed(n) {
+  const nd = needs(), now = new Date();
+  const ts = TASKS.filter(t => t.need === n);
+  const row = t => { const c = checkFor(t, now); return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #2A211B"><span style="width:22px;text-align:center;color:${c ? 'var(--matcha)' : '#5A4A3E'};font-weight:900">${c ? '✓' : '○'}</span><span style="flex-grow:1;${c ? 'color:var(--text-faint);text-decoration:line-through' : ''}">${esc(t.title)}</span><span style="font-size:12px;color:var(--text-dim)">${t.freq === 'weekly' ? DAYS[t.day].slice(0, 2) : t.freq === 'monthly' ? 'Wo ' + t.week : 'tägl.'}</span></div>`; };
+  const grp = (f, title) => { const g = ts.filter(t => t.freq === f); return g.length ? `<div style="font-size:11px;letter-spacing:.12em;color:var(--gold);margin-top:8px">${title}</div>${g.map(row).join('')}` : ''; };
+  openSheet(`<div><div class="kicker">MOCHIS BEDÜRFNIS</div><h2><span class="hk" style="background:${NEED_COLOR[n]};box-shadow:none;color:#1A1411">${NEED_KANJI[n]}</span>${NEED_LABEL[n]}: ${nd[n]} %</h2></div>
+    <p style="margin:0;color:var(--text-dim);font-size:14px;line-height:1.55">So ${NEED_LABEL[n].toLowerCase()} ist Mochi gerade. 100 % heißt: alles, was bis jetzt dran war, ist erledigt. Tagsüber sinkt der Wert langsam, wenn die täglichen Quests offen bleiben. ${NEED_TEXT[n]}</p>
+    <div>${grp('daily', 'TÄGLICH')}${grp('weekly', 'DIESE WOCHE')}${grp('monthly', 'DIESEN MONAT')}</div>
+    <button class="btn ghost" onclick="closeSheet()">Alles klar</button>`);
 }
 function openUndo(id) {
   const t = taskById(id), c = t && checkFor(t); if (!c) return;
