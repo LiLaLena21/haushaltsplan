@@ -100,11 +100,12 @@
   .scene { position: relative; height: 420px; background: var(--scene); overflow: hidden; cursor: pointer; }
   @media (min-width: 900px) { .scene { height: 460px; } body .mochi-wrap { height: 270px; width: auto; aspect-ratio: 17 / 22; } }
   .scene svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bubble::after { content: ''; position: absolute; left: 18px; bottom: -9px; width: 14px; height: 14px; background: #24201B; border-right: 2px solid #4A4137; border-bottom: 2px solid #4A4137; transform: rotate(45deg); }
   .bubble { position: absolute; left: 12px; top: 12px; max-width: 58%; background: #24201B; border: 2px solid #4A4137; border-radius: 14px 14px 14px 4px; padding: 8px 10px; font-size: 13px; line-height: 1.4; z-index: 3; transition: opacity .3s; }
   .nametag { position: absolute; right: 12px; top: 12px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 40%; }
   .nametag .nm { display: flex; align-items: center; gap: 6px; }
   .nametag b { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
-  .nametag small { font-size: 11px; color: var(--text-dim); text-align: right; }
+  .nametag small { font-size: 11px; color: #CFC4B3; text-align: right; text-shadow: 0 1px 4px rgba(0,0,0,.9); }
   .lvbar { width: 110px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
   .lvbar i { display: block; height: 100%; background: var(--gold); border-radius: 4px; transition: width .6s; }
   .lvtag { background: var(--gold); color: var(--bg); border-radius: 10px; padding: 3px 9px; font-size: 12px; font-weight: 900; box-shadow: 0 3px 0 var(--gold-deep); }
@@ -114,7 +115,7 @@
   .mochi-name { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .mochi-name b { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 800; }
   .mochi-name span { font-size: 12px; color: var(--text-dim); text-align: right; }
-  .needs { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; background: rgba(20,18,15,.78); border: 2px solid var(--border); border-radius: 18px; padding: 6px 4px 5px; }
+  .needs { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; background: rgba(20,18,15,.62); border: 2px solid rgba(58,50,42,.8); border-radius: 18px; padding: 6px 4px 5px; backdrop-filter: blur(3px); }
   .ring { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700; }
   .ring svg circle.v { transition: stroke-dasharray .6s cubic-bezier(.2,.8,.2,1); }
   .ring.low { color: var(--warn); }
@@ -144,7 +145,23 @@
   .fx { position: absolute; z-index: 4; pointer-events: none; animation: floatUp 1.4s ease-out forwards; }
   .leaf { position: absolute; top: 0; z-index: 1; animation: fall linear infinite; pointer-events: none; }
   .zzz { position: absolute; z-index: 4; font-family: 'Shippori Mincho', serif; font-weight: 800; color: #E9DDBF; animation: zzz 2.6s ease-out infinite; }
-  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz { animation: none !important; } .mochi-wrap.jump { animation: none; } }
+  @keyframes tw { 0%,100% { opacity: .9; } 50% { opacity: .2; } }
+  @keyframes sway { 0%,100% { transform: rotate(0); } 50% { transform: rotate(1.4deg); } }
+  @keyframes flick { 0%,100% { opacity: 1; } 40% { opacity: .75; } 60% { opacity: .95; } 80% { opacity: .7; } }
+  @keyframes shim { 0%,100% { opacity: .5; transform: scaleX(1); } 50% { opacity: .25; transform: scaleX(.7); } }
+  @keyframes mist { 0%,100% { transform: translateX(-12px); } 50% { transform: translateX(12px); } }
+  @keyframes fly { 0% { transform: translate(0,0); opacity: 0; } 20% { opacity: 1; } 50% { transform: translate(18px,-22px); } 80% { opacity: .9; } 100% { transform: translate(-10px,-40px); opacity: 0; } }
+  @keyframes look { 0%, 70%, 100% { transform: translateX(0); } 75%, 85% { transform: translateX(-2px); } 88%, 95% { transform: translateX(2px); } }
+  @keyframes tilt { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(-5deg); } 93% { transform: rotate(3deg); } }
+  .tw { animation: tw 3.5s ease-in-out infinite; }
+  .sway { animation: sway 6s ease-in-out infinite; transform-box: view-box; }
+  .flicker { animation: flick 2.2s ease-in-out infinite; }
+  .shimmer { animation: shim 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .mist { animation: mist 14s ease-in-out infinite; }
+  .fly { animation: fly 7s ease-in-out infinite; }
+  .pupil { animation: look 9s ease-in-out infinite; }
+  #mHead { transform-box: fill-box; transform-origin: 50% 90%; animation: tilt 11s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz, .tw, .sway, .flicker, .shimmer, .mist, .fly, .pupil, #mHead { animation: none !important; } .mochi-wrap.jump { animation: none; } }
 
   /* Duell & Monatsziel */
   .duel { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
@@ -337,7 +354,7 @@
     <aside class="side">
       <section class="panel mochi-card">
         <div class="scene" id="scene" onclick="tapMochi()" role="button" aria-label="Mochi antippen">
-          <svg class="bg" id="sceneBg" viewBox="0 0 334 236" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
+          <svg class="bg" id="sceneBg" viewBox="0 0 300 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
           <div class="bubble" id="bubble"></div>
           <div class="nametag"><div class="nm"><b>Mochi</b><span class="lvtag" id="lvTag">Lv 1</span></div><small id="mochiStage"></small><div class="lvbar"><i id="mochiBar"></i></div></div>
           <div class="mochi-wrap" id="mochi"></div>
@@ -705,6 +722,11 @@ function isoWeek(d = new Date()) {
 const periodOf = (task, d = new Date()) => task.freq === 'daily' ? dayKey(d) : task.freq === 'weekly' ? isoWeek(d) : monthKey(d);
 const DAYS = ['', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 const NEED_LABEL = { satt: 'Satt', froh: 'Froh', sauber: 'Sauber' };
+const NEED_ICON = {
+  satt: '<path d="M2 11h20c0 5-4.5 9-10 9S2 16 2 11z"/><path d="M8 11c0-2 1.5-3 4-3s4 1 4 3M15 3l-3 5M19 4l-4 4"/>',
+  froh: '<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>',
+  sauber: '<path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/><path d="M9.5 14.5a2.5 2.5 0 0 0 2.5 2.5"/>',
+};
 const fmt = n => (Math.round(n * 10) / 10).toLocaleString('de-DE');
 
 let sb, HH = null, MEMBERS = [], ME = null, OTHER = null, TASKS = [], CHECKS = [], GOAL = null, VIEW = 'heute';
@@ -932,36 +954,78 @@ function buildScene() {
   }
 }
 // Bambus um Mochi herum: wächst mit dem Level
-const STALKS = [[40, 206, 30], [292, 206, 34], [62, 210, 24], [270, 210, 26], [20, 214, 22], [312, 214, 22], [84, 214, 18], [250, 214, 20], [104, 216, 16], [230, 216, 16], [124, 218, 14], [210, 218, 14]];
+// Szene: Himmel je nach Tageszeit, Berge, Torii, Steinlaterne, Teich, Glühwürmchen. Bambus und Sachen wachsen mit dem Level.
+const STALKS = [[34, 328, 34], [268, 328, 38], [56, 332, 26], [246, 332, 28], [16, 336, 24], [288, 336, 24], [78, 336, 20], [224, 336, 22], [98, 338, 16], [204, 338, 16], [118, 340, 14], [186, 340, 14]];
+function dayPhase(d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60;
+  if (h >= 5 && h < 8) return 'morgen';
+  if (h >= 8 && h < 17) return 'tag';
+  if (h >= 17 && h < 20.5) return 'abend';
+  return 'nacht';
+}
+const SKY = {
+  morgen: ['#2B2233', '#5A3A45', '#8A5A4A'], tag: ['#1B3440', '#2E5552', '#44705F'],
+  abend: ['#1C1830', '#43294A', '#7A3E3E'], nacht: ['#0B1220', '#122027', '#18302C'],
+};
 function sceneBg(lvl) {
-  const s = season(), night = isNight();
-  const moon = `<circle cx="262" cy="46" r="26" fill="#E9DDBF" opacity="${night ? .95 : .75}"/><circle cx="262" cy="46" r="40" fill="#E9DDBF" opacity=".06"/>`;
-  const stars = [[120, 24], [190, 40], [80, 56], [210, 14], [150, 70], [40, 30]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.2" fill="#E9DDBF" opacity=".6"/>`).join('');
-  const back = `<path d="M22 236C23 170 19 110 25 0" stroke="#243A29" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M25 92C44 80 62 82 76 90 58 94 42 96 25 92Z" fill="#2B4430"/>
-    <path d="M312 236C310 170 316 110 308 20" stroke="#243A29" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M309 120C291 108 273 110 261 118 277 123 293 124 309 120Z" fill="#2B4430"/>`;
-  const ground = `<path d="M0 214C80 202 240 202 334 216L334 236 0 236Z" fill="#1F2A24"/>`;
-  const n = Math.min(STALKS.length, Math.max(0, lvl - 1));
-  let bamboo = '';
-  for (let i = 0; i < n; i++) {
-    const [x, y, h] = STALKS[i];
-    const big = hasUnlock('hain', lvl) ? 1.8 : 1;
-    bamboo += `<g><path d="M${x} ${y}V${y - h * big}" stroke="#6F8F55" stroke-width="4" stroke-linecap="round"/><path d="M${x - 2} ${y - h * big * .5}h4" stroke="#4E6B3C" stroke-width="2"/><path d="M${x} ${y - h * big + 2}c5-5 11-5 15-2-5 3-10 3-15 2z" fill="#7E9A62"/></g>`;
-  }
-  let props = '';
-  if (hasUnlock('haufen', lvl)) props += `<g transform="translate(58 196)"><path d="M0 12h40M3 7h34M6 2h28" stroke="#7E9A62" stroke-width="5" stroke-linecap="round"/><path d="M8 12v0M20 7v0" stroke="#4E6B3C" stroke-width="2"/></g>`;
-  if (hasUnlock('korb', lvl)) props += `<g transform="translate(236 184)"><path d="M4 12l3 18h26l3-18z" fill="#8A6A3E" stroke="#5C4526" stroke-width="2"/><path d="M8 18h24M9 24h22" stroke="#5C4526" stroke-width="1.5"/><path d="M12 12V0M20 12V-4M28 12V2" stroke="#7E9A62" stroke-width="3.5" stroke-linecap="round"/></g>`;
-  if (hasUnlock('kissen', lvl)) props += `<ellipse cx="167" cy="214" rx="62" ry="9" fill="#7A3B4A" opacity=".85"/>`;
-  if (hasUnlock('tee', lvl)) props += `<g transform="translate(96 200)"><path d="M0 4h20c0 7-4 11-10 11S0 11 0 4z" fill="#3E5A44" stroke="#D4C9B0" stroke-width="1.5"/><ellipse cx="10" cy="4" rx="10" ry="2.5" fill="#9DBB82"/></g>`;
-  if (hasUnlock('bonsai', lvl)) props += `<g transform="translate(274 176)"><rect x="4" y="30" width="26" height="10" rx="2" fill="#5C3A2E"/><path d="M17 30c0-8-6-10-4-18" stroke="#6B4A33" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="10" cy="12" r="9" fill="#3E6B45"/><circle cx="24" cy="8" r="8" fill="#4E7B52"/></g>`;
-  if (hasUnlock('laterne', lvl)) props += `<g transform="translate(22 120)"><path d="M10 0v8" stroke="#6E655C" stroke-width="2"/><rect x="0" y="8" width="20" height="30" rx="9" fill="${night ? '#E8834A' : '#B5543A'}" stroke="#2B2622" stroke-width="2"/><path d="M0 18h20M0 28h20" stroke="#2B2622" stroke-width="1.2" opacity=".6"/>${night ? '<circle cx="10" cy="23" r="22" fill="#E8834A" opacity=".12"/>' : ''}</g>`;
-  $('sceneBg').innerHTML = moon + stars + back + ground + bamboo + props;
+  const s = season(), ph = dayPhase(), sky = SKY[ph], dark = ph === 'nacht' || ph === 'abend';
+  const defs = `<defs>
+    <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".6" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
+    <radialGradient id="gGlow"><stop offset="0" stop-color="#F4C77A" stop-opacity=".35"/><stop offset="1" stop-color="#F4C77A" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gMoon"><stop offset="0" stop-color="#F3E7C6" stop-opacity=".35"/><stop offset="1" stop-color="#F3E7C6" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gFly"><stop offset="0" stop-color="#E9F7A0"/><stop offset="1" stop-color="#E9F7A0" stop-opacity="0"/></radialGradient>
+  </defs>`;
+  let h = defs + `<rect width="300" height="360" fill="url(#gSky)"/>`;
+  if (dark) h += [[40, 30], [90, 60], [150, 22], [200, 48], [120, 92], [30, 110], [260, 120], [175, 80], [70, 140], [240, 18]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${(i * .7) % 4}s" cx="${x}" cy="${y}" r="${i % 3 ? 1.1 : 1.6}" fill="#F3E7C6"/>`).join('');
+  // Mond oder Sonne
+  h += ph === 'tag'
+    ? `<circle cx="228" cy="70" r="46" fill="url(#gMoon)"/><circle cx="228" cy="70" r="22" fill="#F1D9A0" opacity=".9"/>`
+    : `<circle cx="226" cy="74" r="60" fill="url(#gMoon)"/><circle cx="226" cy="74" r="26" fill="#EFE3C2"/><circle cx="216" cy="68" r="5" fill="#D9CCA8" opacity=".6"/><circle cx="234" cy="84" r="3.5" fill="#D9CCA8" opacity=".5"/>`;
+  // Berge mit Schneekappe, dahinter Nebel
+  h += `<path d="M-10 250L60 170 110 215 170 140 240 205 310 160V360H-10Z" fill="#162426" opacity=".95"/>
+    <path d="M150 158l20-18 20 20-8-3-6 6-7-6-6 5z" fill="#CFC6B4" opacity=".55"/>
+    <ellipse class="mist" cx="150" cy="232" rx="190" ry="14" fill="#E9DDBF" opacity=".07"/>
+    <path d="M-10 280C40 240 90 250 140 262S240 238 310 250V360H-10Z" fill="#1A2B27"/>`;
+  // Torii auf dem Hügel
+  h += `<g transform="translate(46 222)" opacity=".9"><path d="M-2 4h32M1 10h26" stroke="#8E3326" stroke-width="3.5" stroke-linecap="round"/><path d="M5 10v22M23 10v22" stroke="#8E3326" stroke-width="3"/><path d="M-4 3c10-4 26-4 36 0" stroke="#2A1612" stroke-width="2.5" fill="none"/></g>`;
+  // hohe Bambusstangen am Rand, wiegen sich
+  h += `<g class="sway" style="transform-origin:14px 360px"><path d="M14 360C15 260 10 150 18 -10" stroke="#24402B" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M10 250h10M12 150h10M14 60h9" stroke="#18301F" stroke-width="3"/><path d="M18 120c20-12 38-11 50-3-19 5-34 7-50 3zM16 200c-18-10-30-9-40-3 16 5 28 6 40 3z" fill="#2F5236"/></g>
+    <g class="sway" style="transform-origin:290px 360px;animation-delay:-2s"><path d="M290 360C288 270 294 160 284 0" stroke="#24402B" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M284 230h10M286 120h10" stroke="#18301F" stroke-width="3"/><path d="M286 170c-20-12-38-11-50-3 19 5 34 7 50 3z" fill="#2F5236"/></g>`;
+  // Boden, Teich mit Spiegelung, Trittsteine, Gras
+  h += `<path d="M-10 318C60 300 240 300 310 316V360H-10Z" fill="#1F2E26"/>
+    <ellipse cx="238" cy="338" rx="52" ry="11" fill="#12202A"/><ellipse class="shimmer" cx="238" cy="337" rx="${ph === 'tag' ? 10 : 12}" ry="2.5" fill="#EFE3C2" opacity=".5"/>
+    <ellipse cx="96" cy="346" rx="11" ry="4" fill="#3A3F3A"/><ellipse cx="70" cy="352" rx="9" ry="3.5" fill="#3A3F3A"/>
+    <path d="M20 322l3-8 2 8M140 312l2-7 3 7M180 314l2-6 2 6M290 322l2-7 3 7" stroke="#3E6B45" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  // Steinlaterne mit warmem Licht
+  h += `<g transform="translate(22 262)"><path d="M6 58h20M9 58V44h14v14" fill="#4A4A44" stroke="#2E2E2A" stroke-width="1.5"/><path d="M4 44h24l-3-6H7z" fill="#5A5A52"/><rect x="8" y="24" width="16" height="14" fill="#5A5A52"/><rect x="11" y="27" width="10" height="8" fill="${dark ? '#F4B45A' : '#8A7A5A'}" class="${dark ? 'flicker' : ''}"/><path d="M1 24h30l-6-9H7z" fill="#5A5A52"/><circle cx="16" cy="12" r="3" fill="#5A5A52"/></g>`;
+  if (dark) h += `<circle class="flicker" cx="38" cy="293" r="30" fill="url(#gGlow)"/>`;
+  // Ahornzweig oben (Jahreszeit)
+  const leaf = (x, y, r) => s.key === 'winter' ? `<circle cx="${x}" cy="${y}" r="3" fill="#F3EDE2" opacity=".9"/>` : s.key === 'fruehling'
+    ? `<g transform="translate(${x} ${y}) rotate(${r})"><path d="M0-6c3 3 3 6 0 9-3-3-3-6 0-9zM-6 0c4 0 6 2 7 4-3 1-6 0-7-4zM6 0c-4 0-6 2-7 4 3 1 6 0 7-4z" fill="${s.color}"/></g>`
+    : `<g transform="translate(${x} ${y}) rotate(${r}) scale(.55)"><path d="M0-11l2.2 4.6 4.8-1.8-1.6 4.9 5 1.3-4.4 2.7 2.8 4.3-5-.5-.8 5L0 5.8-3 9.5l-.8-5-5 .5 2.8-4.3-4.4-2.7 5-1.3-1.6-4.9 4.8 1.8z" fill="${s.color}"/></g>`;
+  h += `<path d="M300 8C260 18 230 30 200 26M250 20c-6 10-4 18 2 24" stroke="#3A2A22" stroke-width="3" fill="none" stroke-linecap="round"/>` + [[206, 30, 10], [222, 22, -20], [240, 30, 30], [256, 44, 5], [270, 14, -35], [286, 22, 15], [232, 12, 40]].map(([x, y, r]) => leaf(x, y, r)).join('');
+  // Glühwürmchen abends und nachts (nicht im Winter)
+  if (dark && s.key !== 'winter') h += [[80, 250], [200, 230], [140, 280], [250, 270], [60, 200]].map(([x, y], i) => `<circle class="fly" style="animation-delay:${-i * 1.7}s;animation-duration:${6 + i}s" cx="${x}" cy="${y}" r="4" fill="url(#gFly)"/>`).join('');
+  // warmes Licht hinter Mochi
+  h += `<ellipse cx="150" cy="300" rx="90" ry="60" fill="url(#gGlow)" opacity="${dark ? .8 : .4}"/>`;
+  // Bambus rund um Mochi: wächst mit dem Level
+  const n = Math.min(STALKS.length, Math.max(0, lvl - 1)), big = hasUnlock('hain', lvl) ? 1.8 : 1;
+  for (let i = 0; i < n; i++) { const [x, y, hh] = STALKS[i];
+    h += `<g><path d="M${x} ${y}V${y - hh * big}" stroke="#6F8F55" stroke-width="4" stroke-linecap="round"/><path d="M${x - 2} ${y - hh * big * .5}h4" stroke="#4E6B3C" stroke-width="2"/><path d="M${x} ${y - hh * big + 2}c5-5 11-5 15-2-5 3-10 3-15 2z" fill="#7E9A62"/></g>`; }
+  if (hasUnlock('haufen', lvl)) h += `<g transform="translate(62 318)"><path d="M0 12h40M3 7h34M6 2h28" stroke="#7E9A62" stroke-width="5" stroke-linecap="round"/></g>`;
+  if (hasUnlock('korb', lvl)) h += `<g transform="translate(206 300)"><path d="M4 12l3 18h26l3-18z" fill="#8A6A3E" stroke="#5C4526" stroke-width="2"/><path d="M8 18h24M9 24h22" stroke="#5C4526" stroke-width="1.5"/><path d="M12 12V0M20 12V-4M28 12V2" stroke="#7E9A62" stroke-width="3.5" stroke-linecap="round"/></g>`;
+  if (hasUnlock('kissen', lvl)) h += `<ellipse cx="150" cy="334" rx="58" ry="8" fill="#7A3B4A" opacity=".85"/>`;
+  if (hasUnlock('tee', lvl)) h += `<g transform="translate(96 322)"><path d="M0 4h20c0 7-4 11-10 11S0 11 0 4z" fill="#3E5A44" stroke="#D4C9B0" stroke-width="1.5"/><ellipse cx="10" cy="4" rx="10" ry="2.5" fill="#9DBB82"/></g>`;
+  if (hasUnlock('bonsai', lvl)) h += `<g transform="translate(250 290)"><rect x="4" y="30" width="26" height="10" rx="2" fill="#5C3A2E"/><path d="M17 30c0-8-6-10-4-18" stroke="#6B4A33" stroke-width="4" fill="none" stroke-linecap="round"/><circle cx="10" cy="12" r="9" fill="#3E6B45"/><circle cx="24" cy="8" r="8" fill="#4E7B52"/></g>`;
+  if (hasUnlock('laterne', lvl)) h += `<g transform="translate(262 190)"><path d="M10 0v8" stroke="#6E655C" stroke-width="2"/><rect x="0" y="8" width="20" height="30" rx="9" fill="${dark ? '#E8834A' : '#B5543A'}" stroke="#2B2622" stroke-width="2"/><path d="M0 18h20M0 28h20" stroke="#2B2622" stroke-width="1.2" opacity=".6"/>${dark ? '<circle cx="10" cy="23" r="24" fill="#E8834A" opacity=".13" class="flicker"/>' : ''}</g>`;
+  $('sceneBg').innerHTML = h;
 }
 function mochiSVG(mood, lvl) {
   const eyes = mood === 'sleep'
     ? `<path d="M48 74q6 4 12 0M90 74q6 4 12 0" stroke="#F3EDE2" stroke-width="3" fill="none" stroke-linecap="round"/>`
     : mood === 'happy'
       ? `<path d="M49 74q6-7 12 0M89 74q6-7 12 0" stroke="#F3EDE2" stroke-width="3.2" fill="none" stroke-linecap="round"/>`
-      : `<g class="eye"><circle cx="55" cy="73" r="4.6" fill="#F3EDE2"/><circle cx="56.5" cy="71.5" r="1.5" fill="#0B0A08"/></g><g class="eye"><circle cx="95" cy="73" r="4.6" fill="#F3EDE2"/><circle cx="96.5" cy="71.5" r="1.5" fill="#0B0A08"/></g>`;
+      : `<g class="eye"><circle cx="55" cy="73" r="5" fill="#F3EDE2"/><circle class="pupil" cx="56" cy="72" r="2.2" fill="#0B0A08"/><circle cx="54" cy="70.5" r="1" fill="#fff"/></g><g class="eye"><circle cx="95" cy="73" r="5" fill="#F3EDE2"/><circle class="pupil" cx="96" cy="72" r="2.2" fill="#0B0A08"/><circle cx="94" cy="70.5" r="1" fill="#fff"/></g>`;
   const mouth = mood === 'sad' ? `<path d="M68 101q7-6 14 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`
     : `<path d="M67 97q8 8 16 0" stroke="#0B0A08" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
   const brows = mood === 'sad' ? `<path d="M46 58l12 4M104 58l-12 4" stroke="#0B0A08" stroke-width="2.5" stroke-linecap="round"/>` : '';
@@ -980,14 +1044,14 @@ function mochiSVG(mood, lvl) {
       <path d="M140 78c14-12 28-12 38-6-14 6-26 8-38 6z" fill="#7E9A62"/>
       <ellipse cx="122" cy="124" rx="15" ry="24" fill="#0B0A08" transform="rotate(28 122 124)"/>
       ${dust}
-      <ellipse cx="75" cy="70" rx="52" ry="45" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
+      <g id="mHead"><ellipse cx="75" cy="70" rx="52" ry="45" fill="#F3EDE2" stroke="#0B0A08" stroke-width="3.5"/>
       <ellipse cx="54" cy="72" rx="13" ry="17" fill="#0B0A08" transform="rotate(28 54 72)"/>
       <ellipse cx="96" cy="72" rx="13" ry="17" fill="#0B0A08" transform="rotate(-28 96 72)"/>
       ${eyes}${brows}
       <ellipse cx="75" cy="89" rx="6.5" ry="4.5" fill="#0B0A08"/>
       ${mouth}
       <ellipse cx="42" cy="92" rx="8" ry="4.5" fill="#E7A79B" opacity=".55"/><ellipse cx="108" cy="92" rx="8" ry="4.5" fill="#E7A79B" opacity=".55"/>
-      ${hat}
+      ${hat}</g>
     </g></svg>`;
 }
 let MOOD_OVERRIDE = null, moodTimer = null;
@@ -1074,7 +1138,7 @@ function renderAll() {
   $('mochiBar').style.width = (100 * ml.into / ml.need) + '%';
   if (!bubbleTimer) $('bubble').textContent = bubbleText(nd, quests);
   $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#F08A6C' : '#6EE7B7', L = 2 * Math.PI * 22;
-    return `<div class="ring${low ? ' low' : ''}"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31.5" text-anchor="middle" font-size="13" font-weight="900" fill="${low ? '#F08A6C' : '#EFE7DA'}" font-family="Zen Maru Gothic">${nd[n]}</text></svg>${NEED_LABEL[n]}</div>`; }).join('');
+    return `<div class="ring${low ? ' low' : ''}"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><g transform="translate(15 15)" fill="none" stroke="${low ? '#F08A6C' : '#EFE7DA'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NEED_ICON[n]}</g></svg><span>${NEED_LABEL[n]} <b style="font-weight:900">${nd[n]}</b></span></div>`; }).join('');
   renderDuel();
   const openN = quests.filter(q => !q.c).length; $('questBadge').textContent = openN || '';
   renderView(quests);
