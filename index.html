@@ -1340,7 +1340,7 @@ function showThought(on) { thinkShown = on; ['bubble', 'tdotA', 'tdotB'].forEach
 function thinkCycle(first) {
   clearTimeout(thinkTimer);
   if (thinkShown && !first) { showThought(false); thinkTimer = setTimeout(thinkCycle, 25000 + Math.random() * 25000); }
-  else { thinkIdx++; if (!bubbleTimer) renderAll(); showThought(true); placeBubble(); thinkTimer = setTimeout(thinkCycle, 7000); }
+  else { thinkIdx++; if (!bubbleTimer) renderAll(); showThought(true); placeBubble(); thinkTimer = setTimeout(thinkCycle, Math.min(14000, 7000 + $('bubble').textContent.length * 70)); }
 }
 function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; showThought(true); placeBubble(); clearTimeout(thinkTimer); thinkTimer = setTimeout(thinkCycle, hold + 1500); clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
 function jump() { const m = $('mochi'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
