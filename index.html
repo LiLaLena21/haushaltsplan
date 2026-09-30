@@ -1051,7 +1051,7 @@ function needs() {
   });
   return res;
 }
-const isNight = (d = new Date()) => d.getHours() >= 23 || d.getHours() < 6;
+const isNight = (d = new Date()) => d.getHours() >= 22 || d.getHours() < 8;   // Mochi schläft von 22 bis 8 Uhr
 function season(d = new Date()) {
   const m = d.getMonth() + 1;
   if (m >= 3 && m <= 5) return { key: 'fruehling', color: '#EFA9B8', name: 'Frühling' };
