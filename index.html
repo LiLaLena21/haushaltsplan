@@ -171,8 +171,12 @@
   .wave { transform-box: view-box; animation: wave .9s ease-in-out infinite; }
   .bob { transform-box: fill-box; transform-origin: center; animation: bob 2.4s ease-in-out infinite; }
   .nibble { transform-box: view-box; animation: nibble 5s ease-in-out infinite; }
+  @keyframes grr { 0%, 55%, 100% { transform: translate(0,0); opacity: 0; } 60% { opacity: 1; transform: translate(-1.5px,0); } 64% { transform: translate(1.5px,0); } 68% { transform: translate(-1.5px,0); } 72% { transform: translate(1.5px,0); } 90% { opacity: 1; transform: translate(0,0); } }
+  @keyframes stink { 0%, 100% { opacity: .2; transform: translateY(0); } 50% { opacity: .8; transform: translateY(-4px); } }
+  .grr { transform-box: view-box; animation: grr 3.5s ease-in-out infinite; }
+  .stink path { transform-box: fill-box; animation: stink 2.4s ease-in-out infinite; }
   .chew { transform-box: fill-box; transform-origin: center; animation: chew 5s ease-in-out infinite; }
-  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz, .tw, .sway, .flicker, .shimmer, .mist, .fly, .pupil, .nibble, .chew, .wave, .bob { animation: none !important; } .mochi-wrap.jump { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { #mBody, .eye, #earL, #earR, .leaf, .zzz, .tw, .sway, .flicker, .shimmer, .mist, .fly, .pupil, .nibble, .chew, .wave, .bob, .grr, .stink path { animation: none !important; } .mochi-wrap.jump { animation: none; } }
 
   /* Duell & Monatsziel */
   .duel { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
@@ -1152,9 +1156,9 @@ const BUILD = [
   { head: [52, 45], body: [54, 44], ear: 17, eye: 5, arm: [15, 25], leg: [21, 13] },               // groß
   { head: [52, 45], body: [56, 46], ear: 17, eye: 5, arm: [15, 25], leg: [21, 13], wise: true },   // weise
 ];
-function mochiSVG(mood, lvl, act = 'eat') {
+function mochiSVG(mood, lvl, act = 'eat', F = {}) {
   const st = Math.max(0, STAGES.indexOf(stageOf(lvl))), B = BUILD[st];
-  const low = mood === 'sad' || mood === 'hungry' || mood === 'dusty';
+  const low = mood === 'low';
   if (mood === 'sleep') act = 'sleep'; else if (low) act = 'sit';
   if (act === 'tea' && !hasUnlock('tee', lvl)) act = 'sit';
   const [hx, hy] = B.head, [bx, by] = B.body, [ax, ay] = B.arm, [lx, ly] = B.leg;
@@ -1180,11 +1184,13 @@ function mochiSVG(mood, lvl, act = 'eat') {
     : `<path d="M${hcx - 6} ${my - 1}q3 4 6 0q3 4 6 0" stroke="#0B0A08" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
   const brows = low ? `<path d="M${L - 7} ${ey - e - 13}l11 -4M${R + 7} ${ey - e - 13}l-11 -4" stroke="#0B0A08" stroke-width="2.6" stroke-linecap="round"/>`
     : B.wise ? `<path d="M${L - 10} ${ey - e - 14}q10-6 18 0M${R + 10} ${ey - e - 14}q-10-6-18 0" stroke="#8E8375" stroke-width="3" fill="none" stroke-linecap="round"/>` : '';
-  const tear = mood === 'sad' ? `<path d="M${R + e * .9} ${ey + e + 4}q3 5 0 8q-3-3 0-8z" fill="#8FC3E6" class="bob"/>` : '';
+  const tear = F.sad && mood !== 'sleep' ? `<path d="M${R + e * .9} ${ey + e + 4}q3 5 0 8q-3-3 0-8z" fill="#8FC3E6" class="bob"/>` : '';
   const earY = hcy - hy * 0.78, earX = hx * 0.72;
   const tuft = st === 0 ? `<path d="M${hcx - 3} ${hcy - hy + 2}c-2-7 4-10 7-6-5 0-5 4-2 6" stroke="#0B0A08" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : '';
   const hat = hasUnlock('hut', lvl) ? `<g transform="translate(${hcx - 75} ${hcy - 70})"><path d="M22 36L75-2l53 38c-30 8-76 8-106 0z" fill="#C9A45C" stroke="#7A5F28" stroke-width="2.5"/><path d="M40 30c20 4 50 4 70 0" stroke="#7A5F28" stroke-width="1.5" fill="none"/></g>` : '';
-  const dust = mood === 'dusty' ? `<g fill="#8E8375" opacity=".6"><circle cx="${bcx - bx * .4}" cy="${bcy + 8}" r="4"/><circle cx="${bcx + bx * .25}" cy="${bcy + 16}" r="3"/><circle cx="${hcx + hx * .55}" cy="${hcy - hy * .35}" r="3.5"/><circle cx="${hcx - hx * .45}" cy="${hcy + hy * .55}" r="2.5"/><path d="M${hcx + hx * .9} ${hcy - hy * .9}c4-3 8-1 7 3M${hcx - hx - 4} ${hcy - hy * .2}c-4-2-7 1-5 4" stroke="#8E8375" stroke-width="1.6" fill="none"/></g>` : '';
+  const dust = F.dirty ? `<g fill="#7A6448" opacity=".68"><ellipse cx="${hcx + hx * .55}" cy="${hcy - hy * .38}" rx="7" ry="4.5" transform="rotate(-20 ${hcx + hx * .55} ${hcy - hy * .38})"/><ellipse cx="${hcx - hx * .5}" cy="${hcy + hy * .55}" rx="6" ry="3.5"/><ellipse cx="${bcx + bx * .3}" cy="${bcy + by * .45}" rx="8" ry="5"/><ellipse cx="${bcx - bx * .35}" cy="${bcy + by * .15}" rx="5" ry="3.5"/><circle cx="${hcx - hx * .2}" cy="${hcy - hy * .7}" r="2.5"/></g>
+    <g fill="#A89A86" opacity=".55"><circle cx="${bcx - bx - 6}" cy="${bb + 2}" r="5"/><circle cx="${bcx - bx - 14}" cy="${bb - 1}" r="3.5"/><circle cx="${bcx + bx + 8}" cy="${bb + 3}" r="4"/></g>
+    <g class="stink" stroke="#9FB08A" stroke-width="2" fill="none" stroke-linecap="round" opacity=".75"><path d="M${hcx - hx * .55} ${hcy - hy - 6}q-4-5 0-10q4-5 0-10"/><path d="M${hcx + hx * .6} ${hcy - hy - 2}q-4-5 0-10q4-5 0-10" style="animation-delay:-.8s"/></g>` : '';
   // Füße mit Ballen, gleich groß und gleich weit auseinander
   const foot = (x, y) => `<g transform="translate(${x} ${y})"><ellipse rx="${lx * 1.05}" ry="${ly * 1.25}" fill="#0B0A08"/><ellipse cy="${ly * .25}" rx="${lx * .5}" ry="${ly * .55}" fill="#3E362F"/>${[-.45, 0, .45].map(k => `<circle cx="${lx * k}" cy="${-ly * .55}" r="${lx * .16}" fill="#3E362F"/>`).join('')}</g>`;
   const arm = (x, y, r, sc = 1, cls = '') => `<ellipse class="${cls}" cx="${x}" cy="${y}" rx="${ax * sc}" ry="${ay * sc}" fill="#0B0A08" transform="rotate(${r} ${x} ${y})"/>`;
@@ -1193,8 +1199,9 @@ function mochiSVG(mood, lvl, act = 'eat') {
   const gl = B.sprig ? 40 : 62, gx = bcx + bx * .2, gy = bb - 2;
   const groundBamboo = `<path d="M${gx} ${gy}L${gx + gl} ${gy - 6}" stroke="#6F8F55" stroke-width="${B.sprig ? 4.5 : 6}" stroke-linecap="round"/><path d="M${gx + gl * .6} ${gy - 4}v-4" stroke="#4E6B3C" stroke-width="2"/><path d="M${gx + gl} ${gy - 6}c7-7 15-7 20-3-7 4-14 4-20 3z" fill="#7E9A62"/>`;
   // Stimmungs-Sachen neben ihm: leere Schale bei Hunger, liegengelassener Ball bei Langeweile
-  const bowl = mood === 'hungry' ? `<g transform="translate(${bcx - bx - 22} ${bb + 2})"><path d="M-16 0h32c0 9-7 14-16 14S-16 9-16 0z" fill="#8E3326" stroke="#0B0A08" stroke-width="2"/><ellipse rx="16" ry="4" fill="#2A1612" stroke="#0B0A08" stroke-width="2"/><path d="M-8 7h16" stroke="#C9A45C" stroke-width="1.5"/></g>` : '';
-  const idleBall = mood === 'sad' ? `<g transform="translate(${bcx + bx + 18} ${bb + 2})"><circle r="11" fill="#C8402F" stroke="#0B0A08" stroke-width="2"/><path d="M-11 0h22M0-11v22" stroke="#E9C46A" stroke-width="1.6"/><circle r="4" fill="#34467A" stroke="#E9C46A" stroke-width="1.2"/></g>` : '';
+  const bowl = F.hungry ? `<g transform="translate(${bcx - bx - 22} ${bb + 2})"><path d="M-16 0h32c0 9-7 14-16 14S-16 9-16 0z" fill="#8E3326" stroke="#0B0A08" stroke-width="2"/><ellipse rx="16" ry="4" fill="#2A1612" stroke="#0B0A08" stroke-width="2"/><path d="M-8 7h16" stroke="#C9A45C" stroke-width="1.5"/></g>` : '';
+  const idleBall = F.sad ? `<g transform="translate(${bcx + bx + 18} ${bb + 2})"><circle r="11" fill="#C8402F" stroke="#0B0A08" stroke-width="2"/><path d="M-11 0h22M0-11v22" stroke="#E9C46A" stroke-width="1.6"/><circle r="4" fill="#34467A" stroke="#E9C46A" stroke-width="1.2"/></g>` : '';
+  const grr = F.hungry ? `<g class="grr" style="transform-origin:${bcx}px ${bcy + by * .3}px"><path d="M${bcx - bx - 4} ${bcy + by * .1}q-5 6 0 12M${bcx - bx - 10} ${bcy + by * .05}q-6 8 0 16M${bcx + bx + 4} ${bcy + by * .1}q5 6 0 12M${bcx + bx + 10} ${bcy + by * .05}q6 8 0 16" stroke="#D9A441" stroke-width="2" fill="none" stroke-linecap="round"/><text x="${bcx + bx + 16}" y="${bcy - by * .35}" font-size="13" font-weight="800" font-family="Zen Maru Gothic, sans-serif" fill="#D9A441">ぐぅ…</text></g>` : '';
   const bx0 = hcx + hx * 0.28, by0 = my + 6;
   let behind = groundBamboo, front = '';
   if (act === 'eat') {
@@ -1237,16 +1244,18 @@ function mochiSVG(mood, lvl, act = 'eat') {
       <ellipse cx="${L - 12}" cy="${my - 3}" rx="${st === 0 ? 10 : 8}" ry="${st === 0 ? 5.5 : 4.5}" fill="#E7A79B" opacity="${low ? .3 : st === 0 ? .7 : .55}"/><ellipse cx="${R + 12}" cy="${my - 3}" rx="${st === 0 ? 10 : 8}" ry="${st === 0 ? 5.5 : 4.5}" fill="#E7A79B" opacity="${low ? .3 : st === 0 ? .7 : .55}"/>
       ${hat}</g>
       ${dust}
-      ${front}
+      ${front}${grr}
     </g></svg>`;
 }
 let MOOD_OVERRIDE = null, moodTimer = null;
+// rote Ringe (unter 40 %) zeigen sich an Mochi: Magengrummeln, Dreck, Traurigkeit, auch alle zugleich
+const needFlags = nd => ({ hungry: nd.satt < 40, dirty: nd.sauber < 40, sad: nd.froh < 40 });
 // Laune folgt den Bedürfnissen: niedrigstes unter 35 % bestimmt den Kummer, alle über 70 % macht ihn fröhlich
 function currentMood(nd) {
   if (MOOD_OVERRIDE) return MOOD_OVERRIDE;
   if (isNight()) return 'sleep';
   const low = Object.entries(nd).sort((a, b) => a[1] - b[1])[0];
-  if (low[1] < 35) return { satt: 'hungry', sauber: 'dusty', froh: 'sad' }[low[0]];
+  if (low[1] < 40) return 'low';
   if (low[1] >= 70) return 'happy';
   return 'normal';
 }
@@ -1264,8 +1273,9 @@ function renderMochi(nd, ml) {
   if (!actTimer) actTimer = setTimeout(nextAct, 20000 + Math.random() * 15000);
   const act = mood !== 'happy' && ACT === 'wave' ? 'sit' : ACT;
   const el = $('mochi');
-  const key = mood + '|' + ml.lvl + '|' + act;
-  if (el.dataset.key !== key) { el.innerHTML = mochiSVG(mood, ml.lvl, act) + (mood === 'sleep' ? '<span class="zzz" style="left:120px;top:10px;font-size:18px">z</span><span class="zzz" style="left:132px;top:-6px;font-size:14px;animation-delay:1.3s">z</span>' : ''); el.dataset.key = key; }
+  const F = needFlags(nd);
+  const key = mood + '|' + ml.lvl + '|' + act + '|' + JSON.stringify(F);
+  if (el.dataset.key !== key) { el.innerHTML = mochiSVG(mood, ml.lvl, act, F) + (mood === 'sleep' ? '<span class="zzz" style="left:120px;top:10px;font-size:18px">z</span><span class="zzz" style="left:132px;top:-6px;font-size:14px;animation-delay:1.3s">z</span>' : ''); el.dataset.key = key; }
   el.style.setProperty('--ms', stageOf(ml.lvl).scale);
   sceneBg(ml.lvl);
 }
@@ -1274,7 +1284,7 @@ function bubbleText(nd, quests) {
   const recent = [...CHECKS].reverse().find(c => c.checked_by !== ME.user_id && Date.now() - new Date(c.checked_at) < 3 * 3600e3);
   const open = quests.filter(q => !q.c).length;
   const low = Object.entries(nd).sort((a, b) => a[1] - b[1])[0];
-  if (low[1] < 35) return { satt: 'Ich hab Hunger … die Küche wartet auf euch.', sauber: 'Ich fühl mich ganz staubig. Das Bad vielleicht?', froh: 'Mir ist ein bisschen langweilig. Spielt ihr mit mir?' }[low[0]];
+  if (low[1] < 40) return { satt: 'Ich hab Hunger … die Küche wartet auf euch.', sauber: 'Ich fühl mich ganz staubig. Das Bad vielleicht?', froh: 'Mir ist ein bisschen langweilig. Spielt ihr mit mir?' }[low[0]];
   if (recent) { const t = taskById(recent.task_id), m = member(recent.checked_by); if (t && m) return `${m.display_name} hat „${t.title}“ erledigt. Danke!`; }
   if (!open && quests.length) return 'Alles geschafft! Ihr seid die Besten.';
   const h = new Date().getHours();
