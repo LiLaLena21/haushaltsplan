@@ -102,7 +102,7 @@
   .scene svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bubble { position: absolute; left: 12px; top: 64px; width: max-content; max-width: min(250px, 72%); background: #F3EDE2; color: #2A1F18; border-radius: 22px; padding: 9px 14px; font-size: 13.5px; font-weight: 700; line-height: 1.35; text-align: center; z-index: 3; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; transition: opacity .3s, left .3s, top .3s; }
   .tdot { position: absolute; border-radius: 50%; background: #F3EDE2; box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; z-index: 3; transition: left .3s, top .3s; }
-  .bubble .wish { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; color: #6B5A4A; }
+  .bubble .wish { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; color: #4A3A2E; }
   .bubble .wish b { color: #2A1F18; font-weight: 800; }
   .bubble.hide, .tdot.hide { opacity: 0; pointer-events: none; }
   .tdot { transition: left .3s, top .3s, opacity .3s; }
@@ -1290,7 +1290,10 @@ function taskForNeed(n, quests) {
   const w = TASKS.find(t => t.freq === 'weekly' && t.need === n && !weekDone(t)); if (w) return w;
   return TASKS.find(t => t.freq === 'asneeded' && t.need === n) || null;
 }
-const NEED_FEEL = { satt: 'Mein Bauch grummelt …', sauber: 'Ich fühl mich ganz schmutzig …', froh: 'Ich bin ein bisschen traurig …' };
+// Ein ganzer Satz pro Aufgabe, damit Mochi natürlich klingt. Neue Aufgaben ohne Satz bekommen einen allgemeinen Wunsch.
+const WISH = {"t-k-mi": "Bekommen die Katzen ihren Snack? Dann freu ich mich mit.", "t-allg-wz": "Räumt ihr den Wohnzimmertisch auf? Dann ist es gleich gemütlicher.", "t-boden": "Räumt ihr den Boden frei? Dann kann der Saugroboter los.", "w-t-bürs": "Bürstet ihr Tarcin? Das mag er so gern.", "w-k-brun": "Macht ihr den Trinkbrunnen frisch? Die Katzen haben Durst.", "w-büro-ls": "Räumst du deinen Schreibtisch auf, Lena?", "w-büro-ps": "Räumst du deinen Schreibtisch auf, Pascal?", "w-staub": "Wischt ihr mal Staub? Dann glänzt alles wieder.", "w-s-bürs": "Bürstet ihr Sniegs? Das mag er so gern.", "w-bal": "Macht ihr den Balkon schön? Da sitz ich so gern.", "w-müll-wohn": "Leert ihr den Mülleimer im Wohnzimmer?", "w-büro-lm": "Leerst du deinen Mülleimer, Lena?", "w-büro-pm": "Leerst du deinen Mülleimer, Pascal?", "w-s-ras": "Rasiert ihr Sniegs zusammen? Dann fühlt er sich wieder wohl.", "m-k-kb": "Befreit ihr die Kratzbäume von den Haaren?", "m-w-ober": "Wischt ihr die Oberflächen ab? Dann glänzt alles wieder.", "m-w-abs": "Bringt ihr die Abstellkammer in Ordnung?", "m-w-flur": "Räumt ihr Schuhe und Jacken im Flur auf?", "t-k-m": "Habt ihr die Katzen schon gefüttert? Die warten auf ihr Frühstück.", "t-k-a": "Bekommen die Katzen ihr Abendessen?", "t-kue-herd": "Wischt ihr Herd und Arbeitsfläche ab? Dann kann gekocht werden.", "w-kue-pap": "Bringt ihr den Papiermüll weg?", "w-kue-kü": "Schaut ihr mal in den Kühlschrank, ob was weg muss?", "t-kue-aw": "Stellt ihr die Spülmaschine an? Dann gibt es wieder saubere Teller.", "t-kue-sp": "Räumt ihr die Spülmaschine aus? Die Teller sind fertig.", "t-kue-bio": "Bringt ihr den Biomüll runter?", "w-kue-müll": "Bringt ihr den Plastikmüll runter?", "w-eink": "Geht ihr einkaufen? Der Kühlschrank ist bestimmt fast leer.", "w-kue-air": "Macht ihr den Airfryer sauber? Dann gibt es bald was Leckeres.", "m-kue-kü": "Macht ihr den Kühlschrank einmal richtig sauber?", "m-kue-sch": "Wischt ihr die Küchenschränke ab?", "t-k-klo": "Macht ihr das Katzenklo sauber? Das riecht man schon.", "w-bad-ht": "Hängt ihr frische Handtücher auf?", "w-bad-müll": "Leert ihr die Mülleimer im Bad und Gäste-WC?", "w-bad-sp": "Putzt ihr Spiegel und Waschbecken? Dann blitzt es wieder.", "w-bad-to": "Macht ihr die Toilette sauber?", "w-bad-gwc": "Macht ihr das Gäste-WC sauber?", "t-w-w": "Wascht ihr eine Ladung Wäsche?", "t-w-f": "Faltet ihr die Wäsche und räumt sie ein?", "w-wisch": "Wischt ihr die Böden? Dann ist alles wieder frisch.", "m-s-bett": "Bezieht ihr das Bett frisch? Dann schlaft ihr wie ich im Bambuswald.", "w-bad-wisch": "Wischt ihr das Bad?", "w-bad-gwcw": "Wischt ihr das Gäste-WC?", "m-bad-du": "Macht ihr die Dusche sauber?", "m-bad-abl": "Macht ihr die Abflüsse frei?", "m-bad-sch": "Räumt ihr den Badschrank auf?", "m-bad-sta": "Wischt ihr im Bad Staub?"};
+const NEED_FEEL = { satt: 'Mein Bauch grummelt.', sauber: 'Ich fühl mich ganz schmutzig.', froh: 'Ich bin ein bisschen traurig.' };
+const NEED_ASK = { satt: 'Kümmert ihr euch um die Küche?', sauber: 'Macht ihr ein bisschen sauber?', froh: 'Macht ihr es hier ein bisschen schöner?' };
 let thinkIdx = 0;
 // Ein Gedanke = ein Gefühl plus ein Wunsch. Bei mehreren roten Ringen wechselt das Thema von Gedanke zu Gedanke.
 function bubbleText(nd, quests) {
@@ -1300,7 +1303,7 @@ function bubbleText(nd, quests) {
   const lows = Object.entries(nd).filter(([, v]) => v < 40).sort((a, b) => a[1] - b[1]).map(([k]) => k);
   if (lows.length) {
     const n = lows[thinkIdx % lows.length], t = taskForNeed(n, quests);
-    return esc(NEED_FEEL[n]) + (t ? `<small class="wish">Mein Wunsch: <b>${esc(t.title)}</b></small>` : '');
+    return esc(NEED_FEEL[n]) + `<small class="wish">${esc(t && WISH[t.id] || NEED_ASK[n])}</small>`;
   }
   if (recent) { const t = taskById(recent.task_id), m = member(recent.checked_by); if (t && m) return esc(`${m.display_name} hat „${t.title}“ erledigt. Danke!`); }
   if (!open && quests.length) return 'Alles geschafft! Mir geht es super.';
