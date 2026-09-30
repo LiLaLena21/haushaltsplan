@@ -102,6 +102,8 @@
   .scene svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bubble { position: absolute; left: 12px; top: 64px; width: max-content; max-width: min(250px, 72%); background: #F3EDE2; color: #2A1F18; border-radius: 22px; padding: 9px 14px; font-size: 13.5px; font-weight: 700; line-height: 1.35; text-align: center; z-index: 3; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; transition: opacity .3s, left .3s, top .3s; }
   .tdot { position: absolute; border-radius: 50%; background: #F3EDE2; box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; z-index: 3; transition: left .3s, top .3s; }
+  .bubble .wish { display: block; margin-top: 4px; font-size: 12px; font-weight: 600; color: #6B5A4A; }
+  .bubble .wish b { color: #2A1F18; font-weight: 800; }
   .bubble.hide, .tdot.hide { opacity: 0; pointer-events: none; }
   .tdot { transition: left .3s, top .3s, opacity .3s; }
   .tdot.a { width: 13px; height: 13px; } .tdot.b { width: 8px; height: 8px; }
@@ -1288,21 +1290,19 @@ function taskForNeed(n, quests) {
   const w = TASKS.find(t => t.freq === 'weekly' && t.need === n && !weekDone(t)); if (w) return w;
   return TASKS.find(t => t.freq === 'asneeded' && t.need === n) || null;
 }
-const NEED_FEEL = { satt: 'hungrig', sauber: 'schmutzig', froh: 'traurig' };
+const NEED_FEEL = { satt: 'Mein Bauch grummelt …', sauber: 'Ich fühl mich ganz schmutzig …', froh: 'Ich bin ein bisschen traurig …' };
+let thinkIdx = 0;
+// Ein Gedanke = ein Gefühl plus ein Wunsch. Bei mehreren roten Ringen wechselt das Thema von Gedanke zu Gedanke.
 function bubbleText(nd, quests) {
   if (isNight()) return 'Zzz … Mochi schläft.';
   const recent = [...CHECKS].reverse().find(c => c.checked_by !== ME.user_id && Date.now() - new Date(c.checked_at) < 3 * 3600e3);
   const open = quests.filter(q => !q.c).length;
   const lows = Object.entries(nd).filter(([, v]) => v < 40).sort((a, b) => a[1] - b[1]).map(([k]) => k);
   if (lows.length) {
-    const t = taskForNeed(lows[0], quests), ask = t ? ` Macht ihr „${t.title}“?` : '';
-    if (lows.length > 1) {
-      const names = lows.map(k => NEED_FEEL[k]), list = names.slice(0, -1).join(', ') + ' und ' + names[names.length - 1];
-      return `Ich bin ${list}.${t ? ` Fangt mit „${t.title}“ an?` : ''}`;
-    }
-    return { satt: 'Mein Bauch grummelt, ich hab Hunger!', sauber: 'Ich bin ganz schmutzig und staubig.', froh: 'Ich bin traurig, mir fehlt was Schönes.' }[lows[0]] + ask;
+    const n = lows[thinkIdx % lows.length], t = taskForNeed(n, quests);
+    return esc(NEED_FEEL[n]) + (t ? `<small class="wish">Mein Wunsch: <b>${esc(t.title)}</b></small>` : '');
   }
-  if (recent) { const t = taskById(recent.task_id), m = member(recent.checked_by); if (t && m) return `${m.display_name} hat „${t.title}“ erledigt. Danke!`; }
+  if (recent) { const t = taskById(recent.task_id), m = member(recent.checked_by); if (t && m) return esc(`${m.display_name} hat „${t.title}“ erledigt. Danke!`); }
   if (!open && quests.length) return 'Alles geschafft! Mir geht es super.';
   const h = new Date().getHours();
   if (h < 11) return `Guten Morgen! Heute ${open === 1 ? 'steht eine Quest' : 'stehen ' + open + ' Quests'} an.`;
@@ -1337,7 +1337,7 @@ function showThought(on) { thinkShown = on; ['bubble', 'tdotA', 'tdotB'].forEach
 function thinkCycle(first) {
   clearTimeout(thinkTimer);
   if (thinkShown && !first) { showThought(false); thinkTimer = setTimeout(thinkCycle, 25000 + Math.random() * 25000); }
-  else { showThought(true); placeBubble(); thinkTimer = setTimeout(thinkCycle, 7000); }
+  else { thinkIdx++; if (!bubbleTimer) renderAll(); showThought(true); placeBubble(); thinkTimer = setTimeout(thinkCycle, 7000); }
 }
 function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; showThought(true); placeBubble(); clearTimeout(thinkTimer); thinkTimer = setTimeout(thinkCycle, hold + 1500); clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
 function jump() { const m = $('mochi'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
@@ -1385,7 +1385,7 @@ function renderAll() {
   $('lvTag').textContent = 'Lv ' + ml.lvl;
   $('mochiStage').textContent = `${stageOf(ml.lvl).name} · noch ${fmt(ml.need - ml.into)} bis Lv ${ml.lvl + 1}`;
   $('mochiBar').style.width = (100 * ml.into / ml.need) + '%';
-  if (!bubbleTimer) $('bubble').textContent = bubbleText(nd, quests);
+  if (!bubbleTimer) $('bubble').innerHTML = bubbleText(nd, quests);
   requestAnimationFrame(placeBubble);
   $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#E86A4E' : NEED_COLOR[n], L = 2 * Math.PI * 22;
     return `<button class="ring${low ? ' low' : ''}" onclick="event.stopPropagation();openNeed('${n}')" aria-label="${NEED_LABEL[n]} ${nd[n]} Prozent"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><g transform="translate(15 15)" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NEED_ICON[n]}</g></svg><span><span class="kj" style="color:${NEED_COLOR[n]}">${NEED_KANJI[n]}</span>${NEED_LABEL[n]} <b style="font-weight:900">${nd[n]} %</b></span></button>`; }).join('');
