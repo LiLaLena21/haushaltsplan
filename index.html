@@ -57,7 +57,7 @@
     body .duel { padding: 8px 12px; gap: 6px; }
     body .duel-names { display: none; }
     body .duel-row .n { font-size: 16px; }
-    body .bubble { font-size: 12px; padding: 6px 9px; }
+    body .bubble { font-size: 12.5px; padding: 7px 11px; }
     body .layout, body .side { gap: 10px; }
     body .layout { margin-top: 10px; }
   }
@@ -100,8 +100,9 @@
   .scene { position: relative; height: 420px; background: var(--scene); overflow: hidden; cursor: pointer; }
   @media (min-width: 900px) { .scene { height: 460px; } body .mochi-wrap { height: 270px; width: auto; aspect-ratio: 17 / 22; } }
   .scene svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .bubble::after { content: ''; position: absolute; left: 18px; bottom: -9px; width: 14px; height: 14px; background: #24201B; border-right: 2px solid #4A4137; border-bottom: 2px solid #4A4137; transform: rotate(45deg); }
-  .bubble { position: absolute; left: 12px; top: 12px; max-width: 58%; background: #24201B; border: 2px solid #4A4137; border-radius: 14px 14px 14px 4px; padding: 8px 10px; font-size: 13px; line-height: 1.4; z-index: 3; transition: opacity .3s; }
+  .bubble { position: absolute; left: 12px; top: 64px; width: max-content; max-width: min(250px, 72%); background: #F3EDE2; color: #2A1F18; border-radius: 22px; padding: 9px 14px; font-size: 13.5px; font-weight: 700; line-height: 1.35; text-align: center; z-index: 3; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; transition: opacity .3s, left .3s, top .3s; }
+  .tdot { position: absolute; border-radius: 50%; background: #F3EDE2; box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; z-index: 3; transition: left .3s, top .3s; }
+  .tdot.a { width: 13px; height: 13px; } .tdot.b { width: 8px; height: 8px; }
   .nametag { position: absolute; right: 12px; top: 12px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 40%; }
   .nametag .nm { display: flex; align-items: center; gap: 6px; }
   .nametag b { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 800; text-shadow: 0 2px 6px rgba(0,0,0,.6); }
@@ -450,7 +451,7 @@
       <section class="panel mochi-card">
         <div class="scene" id="scene" onclick="tapMochi()" role="button" aria-label="Mochi antippen">
           <svg class="bg" id="sceneBg" viewBox="0 0 300 360" preserveAspectRatio="xMidYMax slice" aria-hidden="true"></svg>
-          <div class="bubble" id="bubble"></div>
+          <div class="bubble" id="bubble"></div><i class="tdot a" id="tdotA"></i><i class="tdot b" id="tdotB"></i>
           <div class="nametag"><div class="nm"><span class="seal" aria-hidden="true">餅</span><b>Mochi</b><span class="lvtag" id="lvTag">Lv 1</span></div><small id="mochiStage"></small><div class="lvbar"><i id="mochiBar"></i></div></div>
           <div class="mochi-wrap" id="mochi"></div>
           <div class="needs" id="needs"></div>
@@ -1279,18 +1280,47 @@ function renderMochi(nd, ml) {
   el.style.setProperty('--ms', stageOf(ml.lvl).scale);
   sceneBg(ml.lvl);
 }
+// Schlägt eine offene Aufgabe vor, die das Bedürfnis füllt: erst heutige Quests, dann Wochenaufgaben, dann nach Bedarf
+function taskForNeed(n, quests) {
+  const q = quests.find(q => !q.c && q.t.need === n); if (q) return q.t;
+  const w = TASKS.find(t => t.freq === 'weekly' && t.need === n && !weekDone(t)); if (w) return w;
+  return TASKS.find(t => t.freq === 'asneeded' && t.need === n) || null;
+}
+const NEED_FEEL = { satt: 'hungrig', sauber: 'schmutzig', froh: 'traurig' };
 function bubbleText(nd, quests) {
   if (isNight()) return 'Zzz … Mochi schläft.';
   const recent = [...CHECKS].reverse().find(c => c.checked_by !== ME.user_id && Date.now() - new Date(c.checked_at) < 3 * 3600e3);
   const open = quests.filter(q => !q.c).length;
-  const low = Object.entries(nd).sort((a, b) => a[1] - b[1])[0];
-  if (low[1] < 40) return { satt: 'Ich hab Hunger … die Küche wartet auf euch.', sauber: 'Ich fühl mich ganz staubig. Das Bad vielleicht?', froh: 'Mir ist ein bisschen langweilig. Spielt ihr mit mir?' }[low[0]];
+  const lows = Object.entries(nd).filter(([, v]) => v < 40).sort((a, b) => a[1] - b[1]).map(([k]) => k);
+  if (lows.length) {
+    const t = taskForNeed(lows[0], quests), ask = t ? ` Macht ihr „${t.title}“?` : '';
+    if (lows.length > 1) {
+      const names = lows.map(k => NEED_FEEL[k]), list = names.slice(0, -1).join(', ') + ' und ' + names[names.length - 1];
+      return `Ich bin ${list}.${t ? ` Fangt mit „${t.title}“ an?` : ''}`;
+    }
+    return { satt: 'Mein Bauch grummelt, ich hab Hunger!', sauber: 'Ich bin ganz schmutzig und staubig.', froh: 'Ich bin traurig, mir fehlt was Schönes.' }[lows[0]] + ask;
+  }
   if (recent) { const t = taskById(recent.task_id), m = member(recent.checked_by); if (t && m) return `${m.display_name} hat „${t.title}“ erledigt. Danke!`; }
-  if (!open && quests.length) return 'Alles geschafft! Ihr seid die Besten.';
+  if (!open && quests.length) return 'Alles geschafft! Mir geht es super.';
   const h = new Date().getHours();
   if (h < 11) return `Guten Morgen! Heute ${open === 1 ? 'steht eine Quest' : 'stehen ' + open + ' Quests'} an.`;
   if (open <= 2) return `Nur noch ${open === 1 ? 'eine Quest' : open + ' Quests'}, dann ist Feierabend!`;
   return `Noch ${open} Quests heute. Ihr schafft das!`;
+}
+// Blase über Mochis Kopf setzen, die kleinen Kreise führen schräg zu ihm hinunter
+function placeBubble() {
+  const sc = $('scene'), bu = $('bubble'), hd = document.querySelector('#mochi #mHead');
+  if (!sc || !bu || !hd || !sc.offsetWidth) return;
+  const S = sc.getBoundingClientRect(), H = hd.getBoundingClientRect();
+  const hx = H.left - S.left + H.width * .5, top = H.top - S.top;
+  const bw = bu.offsetWidth, bh = bu.offsetHeight;
+  let x = hx - bw * .62; x = Math.max(8, Math.min(S.width - bw - 8, x));
+  let y = top - bh - 30; y = Math.max(8, y);
+  bu.style.left = x + 'px'; bu.style.top = y + 'px';
+  const ax = Math.min(x + bw - 18, hx - H.width * .18), by = y + bh;
+  const A = $('tdotA'), B = $('tdotB');
+  A.style.left = (ax - 6) + 'px'; A.style.top = (by + 4) + 'px';
+  B.style.left = (ax + 8) + 'px'; B.style.top = (by + 18) + 'px';
 }
 const TAP_LINES = ['Hihi, das kitzelt!', 'Hast du Bambus dabei?', 'Ich hab euch lieb.', 'Mochi ist bereit!', '*knabbert zufrieden*', 'Noch eine Quest? Für mich?'];
 function tapMochi() {
@@ -1299,7 +1329,7 @@ function tapMochi() {
   setBubble(TAP_LINES[Math.floor(Math.random() * TAP_LINES.length)]);
   clearTimeout(moodTimer); moodTimer = setTimeout(() => { MOOD_OVERRIDE = null; renderAll(); }, 2500);
 }
-function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
+function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; placeBubble(); clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
 function jump() { const m = $('mochi'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
 function miniMochi(need) {
   document.querySelectorAll('.mini').forEach(m => m.remove());
@@ -1346,6 +1376,7 @@ function renderAll() {
   $('mochiStage').textContent = `${stageOf(ml.lvl).name} · noch ${fmt(ml.need - ml.into)} bis Lv ${ml.lvl + 1}`;
   $('mochiBar').style.width = (100 * ml.into / ml.need) + '%';
   if (!bubbleTimer) $('bubble').textContent = bubbleText(nd, quests);
+  requestAnimationFrame(placeBubble);
   $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#E86A4E' : NEED_COLOR[n], L = 2 * Math.PI * 22;
     return `<button class="ring${low ? ' low' : ''}" onclick="event.stopPropagation();openNeed('${n}')" aria-label="${NEED_LABEL[n]} ${nd[n]} Prozent"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><g transform="translate(15 15)" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${NEED_ICON[n]}</g></svg><span><span class="kj" style="color:${NEED_COLOR[n]}">${NEED_KANJI[n]}</span>${NEED_LABEL[n]} <b style="font-weight:900">${nd[n]} %</b></span></button>`; }).join('');
   renderDuel();
@@ -1668,6 +1699,7 @@ async function testPush() {
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
+window.addEventListener('resize', () => requestAnimationFrame(placeBubble));
 acctBoot(hpStart);
 </script>
 </body>
