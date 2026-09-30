@@ -102,6 +102,8 @@
   .scene svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .bubble { position: absolute; left: 12px; top: 64px; width: max-content; max-width: min(250px, 72%); background: #F3EDE2; color: #2A1F18; border-radius: 22px; padding: 9px 14px; font-size: 13.5px; font-weight: 700; line-height: 1.35; text-align: center; z-index: 3; box-shadow: 0 3px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; transition: opacity .3s, left .3s, top .3s; }
   .tdot { position: absolute; border-radius: 50%; background: #F3EDE2; box-shadow: 0 2px 0 rgba(0,0,0,.35), 0 0 0 2px #C9B99E inset; z-index: 3; transition: left .3s, top .3s; }
+  .bubble.hide, .tdot.hide { opacity: 0; pointer-events: none; }
+  .tdot { transition: left .3s, top .3s, opacity .3s; }
   .tdot.a { width: 13px; height: 13px; } .tdot.b { width: 8px; height: 8px; }
   .nametag { position: absolute; right: 12px; top: 12px; z-index: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; max-width: 40%; }
   .nametag .nm { display: flex; align-items: center; gap: 6px; }
@@ -1329,7 +1331,15 @@ function tapMochi() {
   setBubble(TAP_LINES[Math.floor(Math.random() * TAP_LINES.length)]);
   clearTimeout(moodTimer); moodTimer = setTimeout(() => { MOOD_OVERRIDE = null; renderAll(); }, 2500);
 }
-function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; placeBubble(); clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
+// Mochi denkt nur ab und zu: Blase ein paar Sekunden zeigen, dann eine Weile Ruhe
+let thinkShown = true, thinkTimer = null;
+function showThought(on) { thinkShown = on; ['bubble', 'tdotA', 'tdotB'].forEach(id => $(id) && $(id).classList.toggle('hide', !on)); }
+function thinkCycle(first) {
+  clearTimeout(thinkTimer);
+  if (thinkShown && !first) { showThought(false); thinkTimer = setTimeout(thinkCycle, 25000 + Math.random() * 25000); }
+  else { showThought(true); placeBubble(); thinkTimer = setTimeout(thinkCycle, 7000); }
+}
+function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; showThought(true); placeBubble(); clearTimeout(thinkTimer); thinkTimer = setTimeout(thinkCycle, hold + 1500); clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
 function jump() { const m = $('mochi'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
 function miniMochi(need) {
   document.querySelectorAll('.mini').forEach(m => m.remove());
@@ -1700,6 +1710,7 @@ async function testPush() {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
 window.addEventListener('resize', () => requestAnimationFrame(placeBubble));
+setTimeout(() => thinkCycle(true), 1200);
 acctBoot(hpStart);
 </script>
 </body>

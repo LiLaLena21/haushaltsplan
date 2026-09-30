@@ -1,5 +1,5 @@
 // Offline-Hilfe: Seite immer frisch aus dem Netz, bei fehlendem Netz die letzte Version
-const CACHE = 'hp-v11';
+const CACHE = 'hp-v12';
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png'])));
