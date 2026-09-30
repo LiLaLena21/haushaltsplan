@@ -41,12 +41,34 @@
   .main { display: flex; flex-direction: column; gap: 10px; }
   .quest-cols { display: flex; flex-direction: column; gap: 8px; }
   body:not([data-view="heute"]) .side { display: none; }
+  @media (max-width: 899px) {
+    body[data-view="heute"] .main { display: none; }
+    body[data-view="heute"] .app { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; padding-bottom: calc(92px + env(safe-area-inset-bottom)); }
+    body[data-view="heute"] .layout { flex: 1; min-height: 0; }
+    body[data-view="heute"] .side { flex: 1; min-height: 0; }
+    body[data-view="heute"] .mochi-card { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+    body[data-view="heute"] .scene { flex: 1; height: auto; min-height: 150px; }
+    body[data-view="heute"] .mochi-wrap { height: min(66%, 320px); width: auto; aspect-ratio: 19 / 20; }
+  }
+  @media (max-width: 899px) and (max-height: 720px) {
+    body .mochi-info { padding: 8px 12px 10px; gap: 6px; }
+    body .mochi-name span { display: none; }
+    body .ring svg { width: 46px; height: 46px; }
+    body .ring { font-size: 11.5px; }
+    body .duel { padding: 8px 12px; gap: 6px; }
+    body .duel-names { display: none; }
+    body .duel-row .n { font-size: 16px; }
+    body .bubble { font-size: 12px; padding: 6px 9px; }
+    body .layout, body .side { gap: 10px; }
+    body .layout { margin-top: 10px; }
+  }
   .topnav { display: none; }
 
   @media (min-width: 900px) {
     .app { max-width: 1240px; padding: 22px 32px 40px; }
     .layout { display: grid; grid-template-columns: 440px minmax(0, 1fr); gap: 32px; align-items: start; margin-top: 22px; }
     body:not([data-view="heute"]) .side { display: flex; }
+    body[data-view="quests"] .side { display: flex; }
     .side { position: sticky; top: 22px; }
     .bottomnav { display: none !important; }
     .topnav { display: flex; }
@@ -88,6 +110,9 @@
   .mochi-name b { font-family: 'Shippori Mincho', serif; font-size: 22px; font-weight: 800; }
   .mochi-name span { font-size: 12px; color: var(--text-dim); text-align: right; }
   .needs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .ring { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 700; }
+  .ring svg circle.v { transition: stroke-dasharray .6s cubic-bezier(.2,.8,.2,1); }
+  .ring.low { color: var(--warn); }
   .need { display: flex; flex-direction: column; gap: 4px; }
   .need .xp-top b { font-weight: 700; }
   .need .bar { height: 12px; border-radius: 7px; }
@@ -208,6 +233,12 @@
   .bottomnav { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(10px + env(safe-area-inset-bottom)); width: calc(100% - 20px); max-width: 500px; background: var(--surface); border: 2px solid var(--border); border-radius: 24px; box-shadow: 0 4px 0 var(--shadow-hard), var(--shadow); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; padding: 6px; z-index: 50; }
   .nb { border: none; background: none; color: var(--text-dim); min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; cursor: pointer; }
   .nb.on { color: var(--text); font-weight: 700; }
+  .nb-main { position: relative; }
+  .nb-main.on { background: #9FF3CF; }
+  .nb-badge { position: absolute; top: -4px; right: -6px; min-width: 24px; height: 24px; border-radius: 12px; background: var(--warn); color: #14120F; font-size: 12.5px; font-weight: 900; display: flex; align-items: center; justify-content: center; padding: 0 6px; border: 3px solid var(--bg); }
+  .nb-badge:empty { display: none; }
+  .mini { position: fixed; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 8px; background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 4px 16px 4px 4px; box-shadow: 0 4px 0 var(--shadow-hard), var(--shadow); font-size: 13.5px; animation: pop .4s; transition: opacity .4s; pointer-events: none; }
+  .mini .h { width: 48px; height: 48px; }
   .nb-main { justify-self: center; margin-top: -30px; width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--bg); background: var(--accent); box-shadow: 0 4px 0 #2F7A5E; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
   .topnav { gap: 4px; background: var(--surface); border: 2px solid var(--border); border-radius: 999px; padding: 5px; box-shadow: 0 3px 0 var(--shadow-hard); }
   .tn { border: none; background: none; color: var(--text-dim); border-radius: 999px; padding: 0 18px; min-height: 40px; font-size: 14px; cursor: pointer; }
@@ -318,9 +349,9 @@
 </div>
 
 <nav class="bottomnav hidden" id="bottomnav" aria-label="Bereiche">
-  <button class="nb on" data-v="heute" onclick="show('heute')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"></path></svg>Heute</button>
+  <button class="nb on" data-v="heute" onclick="show('heute')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7v9H4z"></path></svg>Mochi</button>
   <button class="nb" data-v="woche" onclick="show('woche')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2.5"></rect><path d="M4 10h16M9 3v4M15 3v4"></path></svg>Woche</button>
-  <button class="nb-main" aria-label="Nächste Quest abhaken" onclick="quickCheck()"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#14120F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L19 7"></path></svg></button>
+  <button class="nb-main" data-v="quests" aria-label="Quests" onclick="show('quests')"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#14120F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6"></path><path d="M6 3a2 2 0 0 0-2 2v1h4V5a2 2 0 0 0-2-2zM9 9l1.5 1.5L13 8M9 15l1.5 1.5L13 14"></path></svg><span class="nb-badge" id="questBadge"></span></button>
   <button class="nb" data-v="erfolge" onclick="show('erfolge')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="10" r="6"></circle><path d="M9 15.5L8 21l4-2 4 2-1-5.5"></path></svg>Erfolge</button>
   <button class="nb" onclick="openMenu()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>Mehr</button>
 </nav>
@@ -994,7 +1025,15 @@ function tapMochi() {
 }
 function setBubble(t, hold = 4000) { $('bubble').textContent = t; lastBubble = t; clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => { bubbleTimer = null; renderAll(); }, hold); }
 function jump() { const m = $('mochi'); m.classList.remove('jump'); void m.offsetWidth; m.classList.add('jump'); }
+function miniMochi(need) {
+  document.querySelectorAll('.mini').forEach(m => m.remove());
+  const el = document.createElement('div'); el.className = 'mini';
+  el.innerHTML = `<div class="h">${mochiSVG('happy', mochiLevel().lvl)}</div><span>${need ? `Mochi freut sich: <b>${NEED_LABEL[need].toLowerCase()}</b> steigt!` : 'Mochi freut sich!'}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; }, 1800); setTimeout(() => el.remove(), 2300);
+}
 function celebrate(need) {
+  if (!$('scene').offsetParent) miniMochi(need);
   jump(); MOOD_OVERRIDE = 'happy';
   clearTimeout(moodTimer); moodTimer = setTimeout(() => { MOOD_OVERRIDE = null; renderAll(); }, 2600);
   const scene = $('scene'); const r = scene.getBoundingClientRect();
@@ -1030,8 +1069,10 @@ function renderAll() {
   $('lvTag').textContent = 'Lv ' + ml.lvl;
   $('mochiStage').textContent = `${stageOf(ml.lvl).name} · noch ${fmt(ml.need - ml.into)} Bambus bis Lv ${ml.lvl + 1}`;
   if (!bubbleTimer) $('bubble').textContent = bubbleText(nd, quests);
-  $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => `<div class="need${nd[n] < 40 ? ' low' : ''}"><div class="xp-top"><b>${NEED_LABEL[n]}</b><span>${nd[n]}</span></div><div class="bar"><i style="width:${nd[n]}%"></i></div></div>`).join('');
+  $('needs').innerHTML = ['satt', 'froh', 'sauber'].map(n => { const low = nd[n] < 40, col = low ? '#F08A6C' : '#6EE7B7', L = 2 * Math.PI * 22;
+    return `<div class="ring${low ? ' low' : ''}"><svg width="58" height="58" viewBox="0 0 54 54" aria-hidden="true"><circle cx="27" cy="27" r="22" fill="none" stroke="#2A251F" stroke-width="5.5"/><circle class="v" cx="27" cy="27" r="22" fill="none" stroke="${col}" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="${(L * Math.max(0.02, nd[n] / 100)).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 27 27)"/><text x="27" y="31.5" text-anchor="middle" font-size="13" font-weight="900" fill="${low ? '#F08A6C' : '#EFE7DA'}" font-family="Zen Maru Gothic">${nd[n]}</text></svg>${NEED_LABEL[n]}</div>`; }).join('');
   renderDuel();
+  const openN = quests.filter(q => !q.c).length; $('questBadge').textContent = openN || '';
   renderView(quests);
 }
 function renderDuel() {
@@ -1055,7 +1096,7 @@ function questRow(q) {
   const dw = t.default_who;
   const whoTxt = dw === 'any' ? 'wer mag' : dw === 'together' ? 'zusammen' : (member(dw) || {}).display_name || '';
   const whoDot = dw === 'together' ? `<i style="background:var(--together)"></i>` : member(dw) ? `<i style="background:${member(dw).color}"></i>` : '';
-  const special = VIEW === 'heute' && q.kind !== 'daily';
+  const special = (VIEW === 'heute' || VIEW === 'quests') && q.kind !== 'daily';
   const sub = q.late ? (q.kind === 'weekly' ? `überfällig seit ${DAYS[t.day]}` : `überfällig aus Woche ${t.week}`)
     : special ? (q.kind === 'weekly' ? 'Wochenquest · heute dran' : 'Monatsquest · diese Woche') : `${esc(t.section)} · <span class="who">${whoDot}${esc(whoTxt)}</span>`;
   const cls = q.late ? ' late' : special ? ' gold' : '';
@@ -1069,7 +1110,7 @@ function chestState(quests) {
 }
 function renderView(quests) {
   const m = $('main');
-  if (VIEW === 'heute') {
+  if (VIEW === 'heute' || VIEW === 'quests') {
     const open = quests.filter(q => !q.c).sort((a, b) => (b.late - a.late) || ((b.kind !== 'daily') - (a.kind !== 'daily')) || a.t.sort - b.t.sort);
     const done = quests.filter(q => q.c).sort((a, b) => new Date(b.c.checked_at) - new Date(a.c.checked_at));
     const ch = chestState(quests);
@@ -1122,6 +1163,7 @@ function expectedMonth() {
   return sum('daily') * days + sum('weekly') * days / 7 + sum('monthly');
 }
 function show(v) {
+  if (v === 'quests' && matchMedia('(min-width: 900px)').matches) v = 'heute';
   VIEW = v; document.body.dataset.view = v;
   document.querySelectorAll('[data-v]').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   renderAll(); window.scrollTo({ top: 0, behavior: 'smooth' });
