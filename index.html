@@ -1081,19 +1081,37 @@ function buildScene() {
 // Bambus um Mochi herum: wächst mit dem Level
 // Szene: Himmel je nach Tageszeit, Berge, Torii, Steinlaterne, Teich, Glühwürmchen. Bambus und Sachen wachsen mit dem Level.
 const STALKS = [[40, 290, 34], [262, 290, 38], [58, 294, 26], [244, 294, 28], [22, 294, 30], [282, 294, 30], [76, 296, 20], [226, 296, 22], [10, 298, 24], [294, 298, 24], [92, 298, 16], [210, 298, 16]];
-function dayPhase(d = new Date()) {
-  const h = d.getHours() + d.getMinutes() / 60;
-  if (h >= 5 && h < 8) return 'morgen';
-  if (h >= 8 && h < 17) return 'tag';
-  if (h >= 17 && h < 20.5) return 'abend';
-  return 'nacht';
+// Sonnenauf- und -untergang für Mitteldeutschland (ca. 51° N, 9° O), in Stunden Ortszeit
+function sunTimes(d = new Date()) {
+  const rad = Math.PI / 180, lat = 51 * rad, lon = 9;
+  const n = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 0)) / 864e5);
+  const decl = 23.44 * rad * Math.sin(2 * Math.PI * (284 + n) / 365);
+  const ha = Math.acos((Math.sin(-0.833 * rad) - Math.sin(lat) * Math.sin(decl)) / (Math.cos(lat) * Math.cos(decl))) / rad / 15;
+  const B = 2 * Math.PI * (n - 81) / 364, eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  const noon = 12 - lon / 15 - eot / 60 - d.getTimezoneOffset() / 60;
+  return { rise: noon - ha, set: noon + ha };
 }
+// Morgen rund um den Sonnenaufgang, Abend von 1,5 h vor bis 40 min nach Sonnenuntergang, danach Nacht
+function dayPhase(d = new Date()) {
+  const h = d.getHours() + d.getMinutes() / 60, { rise, set } = sunTimes(d);
+  if (h < rise - 0.75 || h >= set + 0.67) return 'nacht';
+  if (h < rise + 1.5) return 'morgen';
+  if (h >= set - 1.5) return 'abend';
+  return 'tag';
+}
+// Berge, Hügel, Wiese und Teich je Tageszeit (hinten nach vorn)
+const LAND = {
+  tag:    { m1: '#7E9DB2', m2: '#5D7F7C', m3: '#4C7352', g: '#5B8550', pond: '#6E9CB4' },
+  morgen: { m1: '#5E6A84', m2: '#4A5A62', m3: '#3C5446', g: '#46664A', pond: '#5A7894' },
+  abend:  { m1: '#4A4560', m2: '#38404E', m3: '#2C3E38', g: '#33503A', pond: '#3E4E66' },
+  nacht:  { m1: '#26323E', m2: '#1B2630', m3: '#1A2B27', g: '#1F2E26', pond: '#12202A' },
+};
 const SKY = {
-  morgen: ['#1E2230', '#4A3A40', '#7A5646'], tag: ['#1A2A36', '#2C4448', '#40584E'],
-  abend: ['#141A2A', '#2C2A3A', '#5E3A30'], nacht: ['#0B111C', '#121B28', '#1A2630'],
+  morgen: ['#3A4A6A', '#B07A78', '#F0B48A'], tag: ['#5E93BC', '#A3C8DA', '#E2E9D6'],
+  abend: ['#1E1E34', '#5A3A4A', '#B0603E'], nacht: ['#0B111C', '#121B28', '#1A2630'],
 };
 function sceneBg(lvl) {
-  const s = season(), ph = dayPhase(), sky = SKY[ph], dark = ph === 'nacht' || ph === 'abend';
+  const s = season(), ph = dayPhase(), sky = SKY[ph], dark = ph === 'nacht' || ph === 'abend', night = ph === 'nacht', LD = LAND[ph];
   const defs = `<defs>
     <linearGradient id="gSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset=".6" stop-color="${sky[1]}"/><stop offset="1" stop-color="${sky[2]}"/></linearGradient>
     <radialGradient id="gGlow"><stop offset="0" stop-color="#F4C77A" stop-opacity=".35"/><stop offset="1" stop-color="#F4C77A" stop-opacity="0"/></radialGradient>
@@ -1101,29 +1119,32 @@ function sceneBg(lvl) {
     <radialGradient id="gFly"><stop offset="0" stop-color="#E9F7A0"/><stop offset="1" stop-color="#E9F7A0" stop-opacity="0"/></radialGradient>
   </defs>`;
   let h = defs + `<rect width="300" height="360" fill="url(#gSky)"/>`;
-  if (dark) h += [[40, 30], [90, 60], [150, 22], [200, 48], [120, 92], [30, 110], [260, 120], [175, 80], [70, 140], [240, 18]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${(i * .7) % 4}s" cx="${x}" cy="${y}" r="${i % 3 ? 1.1 : 1.6}" fill="#F3E7C6"/>`).join('');
+  if (night) h += [[40, 30], [90, 60], [150, 22], [200, 48], [120, 92], [30, 110], [260, 120], [175, 80], [70, 140], [240, 18]].map(([x, y], i) => `<circle class="tw" style="animation-delay:${(i * .7) % 4}s" cx="${x}" cy="${y}" r="${i % 3 ? 1.1 : 1.6}" fill="#F3E7C6"/>`).join('');
   // Mond oder Sonne
-  h += ph === 'tag'
-    ? `<circle cx="228" cy="70" r="46" fill="url(#gMoon)"/><circle cx="228" cy="70" r="22" fill="#F1D9A0" opacity=".9"/>`
-    : `<circle cx="226" cy="74" r="60" fill="url(#gMoon)"/><circle cx="226" cy="74" r="26" fill="#EFE3C2"/><circle cx="216" cy="68" r="5" fill="#D9CCA8" opacity=".6"/><circle cx="234" cy="84" r="3.5" fill="#D9CCA8" opacity=".5"/>`;
+  // Sonne am Tag hoch, morgens und abends tief und warm, nachts der Mond
+  h += night
+    ? `<circle cx="226" cy="74" r="60" fill="url(#gMoon)"/><circle cx="226" cy="74" r="26" fill="#EFE3C2"/><circle cx="216" cy="68" r="5" fill="#D9CCA8" opacity=".6"/><circle cx="234" cy="84" r="3.5" fill="#D9CCA8" opacity=".5"/>`
+    : ph === 'tag'
+      ? `<circle cx="228" cy="70" r="46" fill="url(#gMoon)"/><circle cx="228" cy="70" r="22" fill="#F1D9A0" opacity=".9"/>`
+      : `<circle cx="${ph === 'abend' ? 236 : 70}" cy="150" r="58" fill="#F4A45A" opacity=".18"/><circle cx="${ph === 'abend' ? 236 : 70}" cy="150" r="24" fill="${ph === 'abend' ? '#F08A4B' : '#F4C27A'}" opacity=".95"/>`;
   // Berge mit Schneekappe, dahinter Nebel
   const band = (x, y, w, o) => `<rect class="mist" x="${x}" y="${y}" width="${w}" height="7" rx="3.5" fill="#E9DDBF" opacity="${o}"/>`;
   h += band(150, 90, 120, .10) + band(180, 102, 90, .07);
-  h += `<path d="M-10 230C20 200 40 180 70 160C90 175 105 190 120 200L178 134Q185 127 192 134L250 190C270 180 290 176 310 172V360H-10Z" fill="#26323E" opacity=".55"/>
+  h += `<path d="M-10 230C20 200 40 180 70 160C90 175 105 190 120 200L178 134Q185 127 192 134L250 190C270 180 290 176 310 172V360H-10Z" fill="${LD.m1}" opacity="${night ? .55 : 1}"/>
     <path d="M169.5 143.7L178 134Q185 127 192 134L201 142.6L196 140L191 145L186 140.5L181 145L175 140.5Z" fill="#D8CEB4" opacity=".42"/>
     ${band(-20, 205, 140, .08)}${band(170, 214, 150, .07)}
-    <path d="M-10 262C30 236 70 232 110 244C150 226 200 222 240 238C270 230 290 228 310 232V360H-10Z" fill="#1B2630" opacity=".85"/>
+    <path d="M-10 262C30 236 70 232 110 244C150 226 200 222 240 238C270 230 290 228 310 232V360H-10Z" fill="${LD.m2}" opacity=".9"/>
     <g transform="translate(224 196)" fill="#141C24" opacity=".95"><path d="M8 40V34h14v6zM4 34l11-7 11 7zM9 27v-6h12v6zM6 21l9-6 9 6zM10 15v-5h10v5zM7 10l8-6 8 6zM15 4V-4"/><path d="M15-4v-4" stroke="#141C24" stroke-width="1.5"/></g>
     ${band(40, 262, 130, .06)}
-    <path d="M-10 286C40 266 90 270 140 280S240 262 310 272V360H-10Z" fill="#1A2B27"/>`;
+    <path d="M-10 286C40 266 90 270 140 280S240 262 310 272V360H-10Z" fill="${LD.m3}"/>`;
   // Torii auf dem Hügel
   h += `<g transform="translate(46 222)" opacity=".9"><path d="M-2 4h32M1 10h26" stroke="#8E3326" stroke-width="3.5" stroke-linecap="round"/><path d="M5 10v22M23 10v22" stroke="#8E3326" stroke-width="3"/><path d="M-4 3c10-4 26-4 36 0" stroke="#2A1612" stroke-width="2.5" fill="none"/></g>`;
   // hohe Bambusstangen am Rand, wiegen sich
   h += `<g class="sway" style="transform-origin:14px 360px"><path d="M14 360C15 260 10 150 18 -10" stroke="#24402B" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M10 250h10M12 150h10M14 60h9" stroke="#18301F" stroke-width="3"/><path d="M18 120c20-12 38-11 50-3-19 5-34 7-50 3zM16 200c-18-10-30-9-40-3 16 5 28 6 40 3z" fill="#2F5236"/></g>
     <g class="sway" style="transform-origin:290px 360px;animation-delay:-2s"><path d="M290 360C288 270 294 160 284 0" stroke="#24402B" stroke-width="8" fill="none" stroke-linecap="round"/><path d="M284 230h10M286 120h10" stroke="#18301F" stroke-width="3"/><path d="M286 170c-20-12-38-11-50-3 19 5 34 7 50 3z" fill="#2F5236"/></g>`;
   // Boden, Teich mit Spiegelung, Trittsteine, Gras
-  h += `<path d="M-10 318C60 300 240 300 310 316V360H-10Z" fill="#1F2E26"/>
-    <ellipse cx="238" cy="338" rx="52" ry="11" fill="#12202A"/><ellipse class="shimmer" cx="238" cy="337" rx="${ph === 'tag' ? 10 : 12}" ry="2.5" fill="#EFE3C2" opacity=".5"/>
+  h += `<path d="M-10 318C60 300 240 300 310 316V360H-10Z" fill="${LD.g}"/>
+    <ellipse cx="238" cy="338" rx="52" ry="11" fill="${LD.pond}"/><ellipse class="shimmer" cx="238" cy="337" rx="${ph === 'tag' ? 10 : 12}" ry="2.5" fill="#EFE3C2" opacity=".5"/>
     <ellipse cx="96" cy="346" rx="11" ry="4" fill="#3A3F3A"/><ellipse cx="70" cy="352" rx="9" ry="3.5" fill="#3A3F3A"/>
     <path d="M20 322l3-8 2 8M140 312l2-7 3 7M180 314l2-6 2 6M290 322l2-7 3 7" stroke="#3E6B45" stroke-width="2" fill="none" stroke-linecap="round"/>`;
   // Steinlaterne mit warmem Licht
