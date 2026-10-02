@@ -890,6 +890,8 @@ async function hpStart() {
   setInterval(() => { renderAll(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadChecks().then(renderAll); });
   setTimeout(checkMilestones, 800);
+  setTimeout(ensurePush, 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) ensurePush(); });
 }
 async function loadChecks() {
   const all = [];
@@ -1709,20 +1711,37 @@ async function pushUi() {
   $('pushTest').style.display = on ? '' : 'none';
 }
 function b64u(s) { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); }
+// Selbstheilung: Wenn Erinnerungen an sind, prüft die App bei jedem Öffnen, ob das Gerät noch angemeldet ist.
+// Hat der Browser die Push-Adresse gewechselt oder der Server sie verworfen, wird sie still neu eingetragen.
+const pushWanted = () => { try { return localStorage.getItem('hp_push_on') === '1'; } catch (e) { return false; } };
+const setPushWanted = on => { try { on ? localStorage.setItem('hp_push_on', '1') : localStorage.removeItem('hp_push_on'); } catch (e) {} };
+async function savePushSub(sub) {
+  const j = sub.toJSON();
+  const { error } = await Acct.sb.from('hh_push_subs').upsert({ endpoint: j.endpoint, household_id: HH.id, p256dh: j.keys.p256dh, auth: j.keys.auth });
+  if (error) throw error;
+}
+async function ensurePush() {
+  if (!pushOk() || !HH || Notification.permission !== 'granted') return;
+  try {
+    let sub = await pushSub();
+    if (!sub && !pushWanted()) return;
+    if (!sub) { const r = await navigator.serviceWorker.ready; sub = await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) }); }
+    setPushWanted(true);
+    await savePushSub(sub);
+  } catch (e) { console.warn('Erinnerungen prüfen', e); }
+}
 async function togglePush() {
   if (!pushOk()) { toast(isIos() ? 'Auf dem iPhone: Teilen > Zum Home-Bildschirm, dann dort einschalten.' : 'Dieser Browser kann keine Erinnerungen.'); return; }
   try {
     const old = await pushSub();
     if (old) {
       await Acct.sb.from('hh_push_subs').delete().eq('endpoint', old.endpoint);
-      await old.unsubscribe(); toast('Erinnerungen aus'); return pushUi();
+      await old.unsubscribe(); setPushWanted(false); toast('Erinnerungen aus'); return pushUi();
     }
     if (await Notification.requestPermission() !== 'granted') { toast('Ohne Erlaubnis kann Mochi nicht erinnern.'); return pushUi(); }
     const r = await navigator.serviceWorker.ready;
     const sub = await r.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
-    const j = sub.toJSON();
-    const { error } = await Acct.sb.from('hh_push_subs').upsert({ endpoint: j.endpoint, household_id: HH.id, p256dh: j.keys.p256dh, auth: j.keys.auth });
-    if (error) throw error;
+    await savePushSub(sub); setPushWanted(true);
     toast('Erinnerungen an. Mochi meldet sich um 9 und 21 Uhr.');
   } catch (e) { console.error(e); toast('Hat nicht geklappt: ' + (e.message || e)); }
   pushUi();

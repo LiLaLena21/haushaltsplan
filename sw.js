@@ -1,5 +1,5 @@
 // Offline-Hilfe: Seite immer frisch aus dem Netz, bei fehlendem Netz die letzte Version
-const CACHE = 'hp-v19';
+const CACHE = 'hp-v20';
 self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', './manifest.webmanifest', './icons/icon-192.png'])));
@@ -35,4 +35,17 @@ self.addEventListener('notificationclick', e => {
     const c = cs.find(x => x.url.includes('/haushaltsplan'));
     return c ? c.focus() : self.clients.openWindow(url);
   }));
+});
+
+// Wechselt der Browser die Push-Adresse, sofort neu anmelden und den Eintrag in der Datenbank umschreiben
+const VAPID_PUBLIC = 'BEZT0EuXvyh1SQq3sNVMqna4ZjT10R1nTyH6TKr9pJocnHUvcQE27PMnuEnerYX-SGwnONAvvK-MDMS1PpH9w4k';
+const b64u = s => { const p = '='.repeat((4 - s.length % 4) % 4), b = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+self.addEventListener('pushsubscriptionchange', e => {
+  e.waitUntil((async () => {
+    const old = e.oldSubscription && e.oldSubscription.endpoint;
+    const sub = e.newSubscription || await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+    if (!old) return;
+    await fetch('https://kpxsnjrdrawjmsdcefxz.supabase.co/functions/v1/hh-remind?resub=1', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ old, sub: sub.toJSON() }) });
+  })());
 });

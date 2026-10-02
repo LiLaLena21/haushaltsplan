@@ -65,7 +65,7 @@ async function sendTo(subs: any[], msg: { title: string; body: string }) {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ ...msg, url: 'https://lilalena21.github.io/haushaltsplan/' }), { TTL: 3600 });
       sent++;
     } catch (e: any) {
-      if (e && (e.statusCode === 404 || e.statusCode === 410)) await db.from('hh_push_subs').delete().eq('endpoint', s.endpoint);
+      if (e && (e.statusCode === 404 || e.statusCode === 410)) { console.log('abgelaufen, entfernt', e.statusCode, s.user_id); await db.from('hh_push_subs').delete().eq('endpoint', s.endpoint); }
       else console.error('push', e && e.statusCode, e && e.body);
     }
   }
@@ -78,6 +78,19 @@ Deno.serve(async (req: Request) => {
   const S = Object.fromEntries((sec || []).map(r => [r.key, r.value]));
   webpush.setVapidDetails('mailto:haushaltsplan@lilalena21.github.io', S.vapid_public, S.vapid_private);
   const url = new URL(req.url);
+
+  // Der Browser hat die Push-Adresse gewechselt: alten Eintrag auf die neue Adresse umschreiben.
+  // Die alte Adresse ist nur dem Gerät und uns bekannt und dient hier als Nachweis.
+  if (url.searchParams.get('resub')) {
+    const b = await req.json().catch(() => null);
+    const n = b && b.sub, old = b && b.old;
+    if (!old || !n || !n.endpoint || !n.keys) return json(req, { error: 'ungültig' }, 400);
+    const { data: row } = await db.from('hh_push_subs').select('*').eq('endpoint', old).maybeSingle();
+    if (!row) return json(req, { moved: false });
+    await db.from('hh_push_subs').upsert({ endpoint: n.endpoint, user_id: row.user_id, household_id: row.household_id, p256dh: n.keys.p256dh, auth: n.keys.auth });
+    if (old !== n.endpoint) await db.from('hh_push_subs').delete().eq('endpoint', old);
+    return json(req, { moved: true });
+  }
 
   // Probe aus der App: nur an die eigenen Geräte
   if (url.searchParams.get('test')) {
