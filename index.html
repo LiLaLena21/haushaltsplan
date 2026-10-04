@@ -1024,31 +1024,29 @@ function bestStreak() {
 }
 // Bedürfnisse: Anteil erledigter Aufgaben, gemessen daran, wie weit Tag, Woche und Monat schon sind.
 // Bedarfs-Quests geben einen Bonus, offene Folge-Quests (länger als 3 Stunden) ziehen etwas ab.
+// Bedürfnisse: Jede Aufgabe zählt gleich viel.
+// Erledigt im laufenden Zeitraum (Tag, Woche, Monat) = voll. Sonst zählt sie noch so viel, wie vom Zeitraum übrig ist,
+// wenn sie im letzten Zeitraum erledigt wurde (frisch geputzt wirkt nach). Zeiträume vor dem Start der App gelten als erledigt.
+// Nach-Bedarf-Aufgaben geben in den 24 Stunden danach +10.
 function needs() {
   const now = new Date(), h = now.getHours() + now.getMinutes() / 60;
-  const dayPart = Math.max(0.25, Math.min(1, (h - 6) / 15));
-  const y = new Date(now); y.setDate(y.getDate() - 1);
-  const weekPart = Math.max(0.2, (weekday(now) - 1 + dayPart) / 7);
+  const dayPart = Math.max(0, Math.min(1, (h - 6) / 15));
+  const weekPart = (weekday(now) - 1 + dayPart) / 7;
   const dim = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const monthPart = Math.max(0.15, (now.getDate() - 1 + dayPart) / dim);
+  const monthPart = (now.getDate() - 1 + dayPart) / dim;
+  const prevDate = f => { const d = new Date(now); if (f === 'daily') d.setDate(d.getDate() - 1); else if (f === 'weekly') d.setDate(d.getDate() - 7); else d.setMonth(d.getMonth() - 1, Math.min(now.getDate(), 28)); return d; };
+  const part = { daily: dayPart, weekly: weekPart, monthly: monthPart };
   const res = {};
   ['satt', 'froh', 'sauber'].forEach(n => {
-    const ts = TASKS.filter(t => t.need === n); const parts = [];
-    const daily = ts.filter(t => t.freq === 'daily');
-    if (daily.length) {
-      const doneT = daily.filter(t => checkFor(t, now)).length, doneY = daily.filter(t => checkFor(t, y)).length;
-      const vt = Math.min(1, doneT / (daily.length * dayPart)), vy = doneY / daily.length;
-      parts.push([0.5, h < 10 ? 0.5 * vt + 0.5 * vy : 0.8 * vt + 0.2 * vy]);
-    }
-    const weekly = ts.filter(t => t.freq === 'weekly');
-    if (weekly.length) parts.push([0.35, Math.min(1, weekly.filter(weekDone).length / (weekly.length * weekPart))]);
-    const monthly = ts.filter(t => t.freq === 'monthly');
-    if (monthly.length) parts.push([0.15, Math.min(1, monthly.filter(t => checkFor(t)).length / (monthly.length * monthPart))]);
-    const w = parts.reduce((a, p) => a + p[0], 0);
-    let v = w ? 100 * parts.reduce((a, p) => a + p[0] * p[1], 0) / w : 100;
-    const bonus = ts.filter(t => t.freq === 'asneeded').reduce((a, t) => a + checksOf(t.id).filter(c => now - new Date(c.checked_at) < 24 * 3600e3).length, 0);
-    v += bonus * 10;
-    ts.filter(t => t.freq === 'followup').forEach(t => { const f = followState(t); if (f.open && now - new Date(f.since) > 3 * 3600e3) v -= 15; });
+    const ts = TASKS.filter(t => t.need === n && part[t.freq] !== undefined);
+    let sum = 0;
+    ts.forEach(t => {
+      if (checkFor(t, now)) { sum += 1; return; }
+      const pd = prevDate(t.freq), before = HH && dayKey(pd) < HH.start;
+      if (before || checkFor(t, pd)) sum += 1 - part[t.freq];
+    });
+    let v = ts.length ? 100 * sum / ts.length : 100;
+    v += TASKS.filter(t => t.need === n && t.freq === 'asneeded').reduce((a, t) => a + checksOf(t.id).filter(c => now - new Date(c.checked_at) < 24 * 3600e3).length, 0) * 10;
     res[n] = Math.max(0, Math.min(100, Math.round(v)));
   });
   return res;
